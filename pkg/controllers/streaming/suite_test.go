@@ -14,11 +14,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package streaming
+package streaming_test
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
+
+	"sigs.k8s.io/controller-runtime/pkg/manager"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -30,7 +33,9 @@ import (
 	logf "sigs.k8s.io/controller-runtime/pkg/log"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
+	buildv1alpha1 "github.com/projectriff/system/pkg/apis/build/v1alpha1"
 	streamingv1alpha1 "github.com/projectriff/system/pkg/apis/streaming/v1alpha1"
+	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -54,7 +59,9 @@ var _ = BeforeSuite(func(done Done) {
 
 	By("bootstrapping test environment")
 	testEnv = &envtest.Environment{
-		CRDDirectoryPaths: []string{filepath.Join("..", "config", "crd", "bases")},
+		CRDDirectoryPaths: []string{filepath.Join("..", "..", "..", "config", "streaming", "crd", "bases"),
+			filepath.Join("..", "..", "..", "config", "build", "crd", "bases"),
+			filepath.Join("..", "..", "..", "config", "thirdparty", "keda")},
 	}
 
 	var err error
@@ -65,7 +72,10 @@ var _ = BeforeSuite(func(done Done) {
 	err = streamingv1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
-	err = streamingv1alpha1.AddToScheme(scheme.Scheme)
+	err = buildv1alpha1.AddToScheme(scheme.Scheme)
+	Expect(err).NotTo(HaveOccurred())
+
+	err = kedav1alpha1.AddToScheme(scheme.Scheme)
 	Expect(err).NotTo(HaveOccurred())
 
 	// +kubebuilder:scaffold:scheme
@@ -82,3 +92,16 @@ var _ = AfterSuite(func() {
 	err := testEnv.Stop()
 	Expect(err).ToNot(HaveOccurred())
 })
+
+// StartTestManager adds recFn
+func StartTestManager(mgr manager.Manager) (chan struct{}, *sync.WaitGroup) {
+	stop := make(chan struct{})
+	wg := &sync.WaitGroup{}
+	go func() {
+		defer GinkgoRecover()
+		wg.Add(1)
+		defer wg.Done()
+		Expect(mgr.Start(stop)).To(Succeed())
+	}()
+	return stop, wg
+}
