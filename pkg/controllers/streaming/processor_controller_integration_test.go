@@ -26,6 +26,7 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -112,6 +113,7 @@ var _ = Describe("Processor Controller Integration Test", func() {
 					Name:      "riff-streaming-processor",
 					Namespace: testNamespace,
 				},
+				Data: map[string]string{"processorImage": "projectriff/streaming-processor:0.0"},
 			}
 			Expect(clnt.Create(context.TODO(), cm)).To(Succeed())
 		})
@@ -120,18 +122,34 @@ var _ = Describe("Processor Controller Integration Test", func() {
 			safelyDeleteProcessor(clnt, processor)
 		})
 
-		FIt("should become ready", func() {
-			Eventually(func() corev1.ConditionStatus { // FIXME: replace with ultimately before submitting PR
-				var proc streamingv1alpha1.Processor
-				if err := clnt.Get(context.TODO(), client.ObjectKey{Namespace: testNamespace, Name: testProcessor}, &proc); err == nil {
-					for _, cond := range proc.Status.Conditions {
-						if cond.Type == apis.ConditionReady {
-							return cond.Status
+		Context("when the processor's deployment becomes ready", func() {
+			BeforeEach(func() {
+				// TODO: set deployment status Ready condition to true
+				var deployment *appsv1.Deployment
+				ultimately(func() error {
+					var deployments appsv1.DeploymentList
+					if err := clnt.List(context.TODO(), &deployments, client.MatchingLabels(map[string]string{})); err != nil {
+						return err
+					}
+					Expect(len(deployments.Items)).To(Equal(1))
+					deployment = &deployments.Items[0]
+					return nil
+				}).Should(Succeed())
+			})
+
+			FIt("should become ready", func() {
+				Eventually(func() corev1.ConditionStatus { // FIXME: replace with ultimately before submitting PR
+					var proc streamingv1alpha1.Processor
+					if err := clnt.Get(context.TODO(), client.ObjectKey{Namespace: testNamespace, Name: testProcessor}, &proc); err == nil {
+						for _, cond := range proc.Status.Conditions {
+							if cond.Type == apis.ConditionReady {
+								return cond.Status
+							}
 						}
 					}
-				}
-				return corev1.ConditionUnknown
-			}, "10s").Should(Equal(corev1.ConditionTrue))
+					return corev1.ConditionUnknown
+				}, "10s").Should(Equal(corev1.ConditionTrue))
+			})
 		})
 	})
 })
