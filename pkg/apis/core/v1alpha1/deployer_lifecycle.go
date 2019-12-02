@@ -17,6 +17,8 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	networkingv1beta1 "k8s.io/api/networking/v1beta1"
@@ -25,10 +27,10 @@ import (
 )
 
 const (
-	DeployerConditionReady                              = apis.ConditionReady
-	DeployerConditionDeploymentReady apis.ConditionType = "DeploymentReady"
-	DeployerConditionServiceReady    apis.ConditionType = "ServiceReady"
-	DeployerConditionIngressReady    apis.ConditionType = "IngressReady"
+	DeployerConditionReady                                   = apis.ConditionReady
+	DeployerConditionDeploymentReady      apis.ConditionType = "DeploymentReady"
+	DeployerConditionServiceReady         apis.ConditionType = "ServiceReady"
+	DeployerConditionIngressReady         apis.ConditionType = "IngressReady"
 )
 
 var deployerCondSet = apis.NewLivingConditionSet(
@@ -87,6 +89,10 @@ func (ds *DeployerStatus) PropagateDeploymentStatus(cds *appsv1.DeploymentStatus
 func (ds *DeployerStatus) PropagateServiceStatus(ss *corev1.ServiceStatus) {
 	// services don't have meaningful status
 	deployerCondSet.Manage(ds).MarkTrue(DeployerConditionServiceReady)
+}
+
+func (ds *DeployerStatus) MarkServiceNameInUse(collisionKind string, collisionName string) {
+	deployerCondSet.Manage((ds)).MarkFalse(DeployerConditionServiceReady, "serviceNameCollision", fmt.Sprintf("kind %s, name %s", collisionKind, collisionName))
 }
 
 func (ds *DeployerStatus) MarkIngressNotRequired() {

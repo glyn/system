@@ -20,6 +20,8 @@ import (
 	"context"
 	"fmt"
 
+	"k8s.io/apimachinery/pkg/runtime/schema"
+
 	"github.com/go-logr/logr"
 	"github.com/google/go-cmp/cmp"
 	appsv1 "k8s.io/api/apps/v1"
@@ -132,6 +134,7 @@ func (r *DeployerReconciler) reconcile(ctx context.Context, log logr.Logger, dep
 	childService, err := r.reconcileChildService(ctx, log, deployer)
 	if err != nil {
 		log.Error(err, "unable to reconcile child Service", "deployer", deployer)
+		// FIXME: capture error in ServiceStatus false message
 		return ctrl.Result{}, err
 	}
 	deployer.Status.ServiceName = childService.Name
@@ -488,14 +491,21 @@ func (r *DeployerReconciler) reconcileChildService(ctx context.Context, log logr
 		return nil, err
 	}
 
-	// delete service if no longer needed
-	if desiredService == nil {
+	// delete service if no longer needed or it exists and is misnamed
+	if desiredService == nil || (actualService.Name != "" && hasWrongName(actualService, desiredService)) {
 		log.Info("deleting service", "service", actualService)
 		if err := r.Delete(ctx, &actualService); err != nil {
 			log.Error(err, "unable to delete Service for Deployer", "service", actualService)
 			return nil, err
 		}
-		return nil, nil
+
+		// if service is no longer needed, we're done
+		if desiredService == nil {
+			return nil, nil
+		}
+
+		// the service exists and was misnamed, so consider it not to exist
+		actualService.Name = ""
 	}
 
 	// create service if it doesn't exist
@@ -529,6 +539,31 @@ func (r *DeployerReconciler) reconcileChildService(ctx context.Context, log logr
 	return service, nil
 }
 
+func hasWrongName(actual corev1.Service, desired *corev1.Service) bool {
+	// if the static name has changed, the service has the wrong name
+	if actual.GenerateName == "" && desired.GenerateName == "" && actual.Name != desired.Name {
+		return true
+	}
+
+	// if the generated name has changed, the service has the wrong name
+	if actual.GenerateName != "" && desired.GenerateName != "" && actual.GenerateName != desired.GenerateName {
+		return true
+	}
+
+	// if the actual service has a static name and the desired service has a generated name, the service has the wrong name
+	if actual.GenerateName == "" &&  desired.GenerateName != "" {
+		return true
+	}
+
+	// if the actual service has a generated name and the desired service has a static name, the service has the wrong
+	// name, unless the desired static name happens to be the actual generated name
+	if actual.GenerateName != "" && desired.GenerateName == "" && desired.Name != actual.Name {
+		return true
+	}
+
+	return false
+}
+
 func (r *DeployerReconciler) serviceSemanticEquals(desiredService, service *corev1.Service) bool {
 	return equality.Semantic.DeepEqual(desiredService.Spec, service.Spec) &&
 		equality.Semantic.DeepEqual(desiredService.ObjectMeta.Labels, service.ObjectMeta.Labels)
@@ -557,6 +592,38 @@ func (r *DeployerReconciler) constructServiceForDeployer(deployer *corev1alpha1.
 	// If a service name was provided, use it, otherwise generate one based on the deployer name.
 	if deployer.Spec.ServiceName != "" {
 		service.ObjectMeta.Name = deployer.Spec.ServiceName
+
+		// Detect service name collision.
+		collidingService, err := r.getService(deployer.Namespace, deployer.Spec.ServiceName)
+		if err != nil {
+			return nil, err
+		}
+		if collidingService != nil {
+			// Diagnose service name collisions. If the colliding service was created by a deployer, include that in the
+			// diagnostics.
+			collisionKind := collidingService.Kind
+			collisionName := collidingService.Name
+
+			for _, ownerRef := range collidingService.OwnerReferences {
+				if ownerRef.Kind == deployer.Kind {
+					collisionKind = deployer.Kind
+					collisionName = ownerRef.Name
+					break
+				}
+			}
+			err := fmt.Errorf("service name provided on deployer collided with existing service %v", collidingService)
+			r.Log.Error(err, "collision", "deployer", deployer, "collidingService", collidingService,
+				"collisionKind", collisionKind, "collisionName", collisionName)
+			deployer.Status.MarkServiceNameInUse(collisionKind, collisionName)
+
+			// Track the colliding service for collision removal.
+			r.Tracker.Track(
+				serviceTrackerKey(collidingService.Namespace, collidingService.Name),
+				types.NamespacedName{Namespace: deployer.Namespace, Name: deployer.Name},
+			)
+
+			return nil, err
+		}
 	} else {
 		service.ObjectMeta.GenerateName = fmt.Sprintf("%s-deployer-", deployer.Name)
 	}
@@ -566,6 +633,20 @@ func (r *DeployerReconciler) constructServiceForDeployer(deployer *corev1alpha1.
 	}
 
 	return service, nil
+}
+
+func (r *DeployerReconciler) getService(serviceNamespace string, serviceName string) (*corev1.Service, error) {
+	var svc corev1.Service
+	if err := r.Get(context.Background(), client.ObjectKey{
+		Namespace: serviceNamespace,
+		Name:      serviceName,
+	}, &svc); err != nil {
+		if apierrs.IsNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &svc, nil
 }
 
 func (r *DeployerReconciler) constructLabelsForDeployer(deployer *corev1alpha1.Deployer) map[string]string {
@@ -597,6 +678,18 @@ func (r *DeployerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		}
 	}
 
+	enqueueResourcesCollidingWithServices := func() handler.EventHandler {
+		return &handler.EnqueueRequestsFromMapFunc{
+			ToRequests: handler.ToRequestsFunc(func(a handler.MapObject) []reconcile.Request {
+				requests := []reconcile.Request{}
+				for _, item := range r.Tracker.Lookup(serviceTrackerKey(a.Meta.GetNamespace(), a.Meta.GetName())) {
+					requests = append(requests, reconcile.Request{NamespacedName: item})
+				}
+				return requests
+			}),
+		}
+	}
+
 	if err := controllers.IndexControllersOfType(mgr, deploymentIndexField, &corev1alpha1.Deployer{}, &appsv1.Deployment{}); err != nil {
 		return err
 	}
@@ -616,5 +709,18 @@ func (r *DeployerReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Watches(&source.Kind{Type: &buildv1alpha1.Application{}}, enqueueTrackedResources(&buildv1alpha1.Application{})).
 		Watches(&source.Kind{Type: &buildv1alpha1.Container{}}, enqueueTrackedResources(&buildv1alpha1.Container{})).
 		Watches(&source.Kind{Type: &buildv1alpha1.Function{}}, enqueueTrackedResources(&buildv1alpha1.Function{})).
+		// watch for service mutations to update colliding deployers
+		Watches(&source.Kind{Type: &corev1.Service{}}, enqueueResourcesCollidingWithServices()).
 		Complete(r)
+}
+
+func serviceTrackerKey(serviceNamespace string, serviceName string) tracker.Key {
+	return tracker.NewKey(
+		schema.GroupVersionKind{
+			Group:   "",
+			Version: "v1",
+			Kind:    "Service",
+		},
+		types.NamespacedName{Namespace: serviceNamespace, Name: serviceName},
+	)
 }
