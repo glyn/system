@@ -57,21 +57,21 @@ func (f *knativeService) Get() apis.Object {
 	return f.deepCopy().target
 }
 
-func (f *knativeService) Mutate(m func(*knativeservingv1.Service)) *knativeService {
+func (f *knativeService) mutation(m func(*knativeservingv1.Service)) *knativeService {
 	f = f.deepCopy()
 	m(f.target)
 	return f
 }
 
 func (f *knativeService) NamespaceName(namespace, name string) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+	return f.mutation(func(service *knativeservingv1.Service) {
 		service.ObjectMeta.Namespace = namespace
 		service.ObjectMeta.Name = name
 	})
 }
 
 func (f *knativeService) ObjectMeta(nf func(ObjectMeta)) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+	return f.mutation(func(service *knativeservingv1.Service) {
 		omf := objectMeta(service.ObjectMeta)
 		nf(omf)
 		service.ObjectMeta = omf.Get()
@@ -79,7 +79,7 @@ func (f *knativeService) ObjectMeta(nf func(ObjectMeta)) *knativeService {
 }
 
 func (f *knativeService) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+	return f.mutation(func(service *knativeservingv1.Service) {
 		ptsf := podTemplateSpec(
 			// convert RevisionTemplateSpec into PodTemplateSpec
 			corev1.PodTemplateSpec{
@@ -102,7 +102,7 @@ func (f *knativeService) UserContainer(cb func(*corev1.Container)) *knativeServi
 }
 
 func (f *knativeService) StatusConditions(conditions ...*condition) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+	return f.mutation(func(service *knativeservingv1.Service) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
 			c[i] = cg.Get()
@@ -118,7 +118,7 @@ func (f *knativeService) StatusReady() *knativeService {
 }
 
 func (f *knativeService) StatusObservedGeneration(generation int64) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+	return f.mutation(func(service *knativeservingv1.Service) {
 		service.Status.ObservedGeneration = generation
 	})
 }

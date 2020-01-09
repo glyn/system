@@ -58,21 +58,21 @@ func (f *function) Get() apis.Object {
 	return f.deepCopy().target
 }
 
-func (f *function) Mutate(m func(*buildv1alpha1.Function)) *function {
+func (f *function) mutation(m func(*buildv1alpha1.Function)) *function {
 	f = f.deepCopy()
 	m(f.target)
 	return f
 }
 
 func (f *function) NamespaceName(namespace, name string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.ObjectMeta.Namespace = namespace
 		fn.ObjectMeta.Name = name
 	})
 }
 
 func (f *function) ObjectMeta(nf func(ObjectMeta)) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		omf := objectMeta(fn.ObjectMeta)
 		nf(omf)
 		fn.ObjectMeta = omf.Get()
@@ -80,31 +80,31 @@ func (f *function) ObjectMeta(nf func(ObjectMeta)) *function {
 }
 
 func (f *function) Image(format string, a ...interface{}) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Spec.Image = fmt.Sprintf(format, a...)
 	})
 }
 
 func (f *function) Artifact(artifact string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Spec.Artifact = artifact
 	})
 }
 
 func (f *function) Handler(handler string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Spec.Handler = handler
 	})
 }
 
 func (f *function) Invoker(invoker string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Spec.Invoker = invoker
 	})
 }
 
 func (f *function) SourceGit(url string, revision string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		if fn.Spec.Source == nil {
 			fn.Spec.Source = &buildv1alpha1.Source{}
 		}
@@ -119,7 +119,7 @@ func (f *function) SourceGit(url string, revision string) *function {
 }
 
 func (f *function) SourceSubPath(subpath string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		if fn.Spec.Source == nil {
 			fn.Spec.Source = &buildv1alpha1.Source{}
 		}
@@ -128,7 +128,7 @@ func (f *function) SourceSubPath(subpath string) *function {
 }
 
 func (f *function) BuildCache(quantity string) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		size, err := resource.ParseQuantity(quantity)
 		if err != nil {
 			panic(err)
@@ -138,7 +138,7 @@ func (f *function) BuildCache(quantity string) *function {
 }
 
 func (f *function) StatusConditions(conditions ...*condition) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
 			c[i] = cg.Get()
@@ -154,13 +154,13 @@ func (f *function) StatusReady() *function {
 }
 
 func (f *function) StatusObservedGeneration(generation int64) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.ObservedGeneration = generation
 	})
 }
 
 func (f *function) StatusKpackImageRef(format string, a ...interface{}) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.KpackImageRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("build.pivotal.io"),
 			Kind:     "Image",
@@ -170,7 +170,7 @@ func (f *function) StatusKpackImageRef(format string, a ...interface{}) *functio
 }
 
 func (f *function) StatusBuildCacheRef(format string, a ...interface{}) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.BuildCacheRef = &refs.TypedLocalObjectReference{
 			Kind: "PersistentVolumeClaim",
 			Name: fmt.Sprintf(format, a...),
@@ -179,13 +179,13 @@ func (f *function) StatusBuildCacheRef(format string, a ...interface{}) *functio
 }
 
 func (f *function) StatusTargetImage(format string, a ...interface{}) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.TargetImage = fmt.Sprintf(format, a...)
 	})
 }
 
 func (f *function) StatusLatestImage(format string, a ...interface{}) *function {
-	return f.Mutate(func(fn *buildv1alpha1.Function) {
+	return f.mutation(func(fn *buildv1alpha1.Function) {
 		fn.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }

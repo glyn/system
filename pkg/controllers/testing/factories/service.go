@@ -56,21 +56,21 @@ func (f *service) Get() apis.Object {
 	return f.deepCopy().target
 }
 
-func (f *service) Mutate(m func(*corev1.Service)) *service {
+func (f *service) mutation(m func(*corev1.Service)) *service {
 	f = f.deepCopy()
 	m(f.target)
 	return f
 }
 
 func (f *service) NamespaceName(namespace, name string) *service {
-	return f.Mutate(func(sa *corev1.Service) {
+	return f.mutation(func(sa *corev1.Service) {
 		sa.ObjectMeta.Namespace = namespace
 		sa.ObjectMeta.Name = name
 	})
 }
 
 func (f *service) ObjectMeta(nf func(ObjectMeta)) *service {
-	return f.Mutate(func(sa *corev1.Service) {
+	return f.mutation(func(sa *corev1.Service) {
 		omf := objectMeta(sa.ObjectMeta)
 		nf(omf)
 		sa.ObjectMeta = omf.Get()
@@ -78,7 +78,7 @@ func (f *service) ObjectMeta(nf func(ObjectMeta)) *service {
 }
 
 func (f *service) AddSelectorLabel(key, value string) *service {
-	return f.Mutate(func(service *corev1.Service) {
+	return f.mutation(func(service *corev1.Service) {
 		if service.Spec.Selector == nil {
 			service.Spec.Selector = map[string]string{}
 		}
@@ -87,7 +87,7 @@ func (f *service) AddSelectorLabel(key, value string) *service {
 }
 
 func (f *service) Ports(ports ...corev1.ServicePort) *service {
-	return f.Mutate(func(service *corev1.Service) {
+	return f.mutation(func(service *corev1.Service) {
 		service.Spec.Ports = ports
 	})
 }

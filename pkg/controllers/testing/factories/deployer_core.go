@@ -58,21 +58,21 @@ func (f *deployerCore) Get() apis.Object {
 	return f.deepCopy().target
 }
 
-func (f *deployerCore) Mutate(m func(*corev1alpha1.Deployer)) *deployerCore {
+func (f *deployerCore) mutation(m func(*corev1alpha1.Deployer)) *deployerCore {
 	f = f.deepCopy()
 	m(f.target)
 	return f
 }
 
 func (f *deployerCore) NamespaceName(namespace, name string) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.ObjectMeta.Namespace = namespace
 		deployer.ObjectMeta.Name = name
 	})
 }
 
 func (f *deployerCore) ObjectMeta(nf func(ObjectMeta)) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		omf := objectMeta(deployer.ObjectMeta)
 		nf(omf)
 		deployer.ObjectMeta = omf.Get()
@@ -80,7 +80,7 @@ func (f *deployerCore) ObjectMeta(nf func(ObjectMeta)) *deployerCore {
 }
 
 func (f *deployerCore) PodTemplateSpec(nf func(PodTemplateSpec)) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		if deployer.Spec.Template == nil {
 			deployer.Spec.Template = &corev1.PodTemplateSpec{}
 		}
@@ -98,7 +98,7 @@ func (f *deployerCore) HandlerContainer(cb func(*corev1.Container)) *deployerCor
 }
 
 func (f *deployerCore) ApplicationRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Spec.Build = &corev1alpha1.Build{
 			ApplicationRef: fmt.Sprintf(format, a...),
 		}
@@ -106,7 +106,7 @@ func (f *deployerCore) ApplicationRef(format string, a ...interface{}) *deployer
 }
 
 func (f *deployerCore) ContainerRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Spec.Build = &corev1alpha1.Build{
 			ContainerRef: fmt.Sprintf(format, a...),
 		}
@@ -114,7 +114,7 @@ func (f *deployerCore) ContainerRef(format string, a ...interface{}) *deployerCo
 }
 
 func (f *deployerCore) FunctionRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Spec.Build = &corev1alpha1.Build{
 			FunctionRef: fmt.Sprintf(format, a...),
 		}
@@ -128,13 +128,13 @@ func (f *deployerCore) Image(format string, a ...interface{}) *deployerCore {
 }
 
 func (f *deployerCore) IngressPolicy(policy corev1alpha1.IngressPolicy) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Spec.IngressPolicy = policy
 	})
 }
 
 func (f *deployerCore) StatusConditions(conditions ...*condition) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
 			c[i] = cg.Get()
@@ -144,19 +144,19 @@ func (f *deployerCore) StatusConditions(conditions ...*condition) *deployerCore 
 }
 
 func (f *deployerCore) StatusObservedGeneration(generation int64) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.ObservedGeneration = generation
 	})
 }
 
 func (f *deployerCore) StatusLatestImage(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }
 
 func (f *deployerCore) StatusDeploymentRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.DeploymentRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("apps"),
 			Kind:     "Deployment",
@@ -166,7 +166,7 @@ func (f *deployerCore) StatusDeploymentRef(format string, a ...interface{}) *dep
 }
 
 func (f *deployerCore) StatusServiceRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.ServiceRef = &refs.TypedLocalObjectReference{
 			APIGroup: nil,
 			Kind:     "Service",
@@ -176,7 +176,7 @@ func (f *deployerCore) StatusServiceRef(format string, a ...interface{}) *deploy
 }
 
 func (f *deployerCore) StatusIngressRef(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.IngressRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("networking.k8s.io"),
 			Kind:     "Ingress",
@@ -186,7 +186,7 @@ func (f *deployerCore) StatusIngressRef(format string, a ...interface{}) *deploy
 }
 
 func (f *deployerCore) StatusAddressURL(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.Address = &apis.Addressable{
 			URL: fmt.Sprintf(format, a...),
 		}
@@ -194,7 +194,7 @@ func (f *deployerCore) StatusAddressURL(format string, a ...interface{}) *deploy
 }
 
 func (f *deployerCore) StatusURL(format string, a ...interface{}) *deployerCore {
-	return f.Mutate(func(deployer *corev1alpha1.Deployer) {
+	return f.mutation(func(deployer *corev1alpha1.Deployer) {
 		deployer.Status.URL = fmt.Sprintf(format, a...)
 	})
 }
