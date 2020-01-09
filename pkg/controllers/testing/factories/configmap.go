@@ -22,11 +22,16 @@ import (
 	corev1 "k8s.io/api/core/v1"
 
 	"github.com/projectriff/system/pkg/apis"
+	rtesting "github.com/projectriff/system/pkg/controllers/testing"
 )
 
 type configMap struct {
 	target *corev1.ConfigMap
 }
+
+var (
+	_ rtesting.Factory = (*configMap)(nil)
+)
 
 func ConfigMap(seed ...*corev1.ConfigMap) *configMap {
 	var target *corev1.ConfigMap

@@ -21,11 +21,16 @@ import (
 
 	"github.com/projectriff/system/pkg/apis"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
+	rtesting "github.com/projectriff/system/pkg/controllers/testing"
 )
 
 type kedaScaledObject struct {
 	target *kedav1alpha1.ScaledObject
 }
+
+var (
+	_ rtesting.Factory = (*kedaScaledObject)(nil)
+)
 
 func KedaScaledObject(seed ...*kedav1alpha1.ScaledObject) *kedaScaledObject {
 	var target *kedav1alpha1.ScaledObject

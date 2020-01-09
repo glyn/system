@@ -31,6 +31,10 @@ type deployment struct {
 	target *appsv1.Deployment
 }
 
+var (
+	_ rtesting.Factory = (*deployment)(nil)
+)
+
 func Deployment(seed ...*appsv1.Deployment) *deployment {
 	var target *appsv1.Deployment
 	switch len(seed) {

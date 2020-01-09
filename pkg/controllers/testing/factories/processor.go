@@ -31,6 +31,10 @@ type processor struct {
 	target *streamingv1alpha1.Processor
 }
 
+var (
+	_ rtesting.Factory = (*processor)(nil)
+)
+
 func Processor(seed ...*streamingv1alpha1.Processor) *processor {
 	var target *streamingv1alpha1.Processor
 	switch len(seed) {
