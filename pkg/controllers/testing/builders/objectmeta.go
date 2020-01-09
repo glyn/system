@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -26,7 +26,7 @@ import (
 
 type ObjectMeta interface {
 	Mutate(m func(*metav1.ObjectMeta)) ObjectMeta
-	Get() metav1.ObjectMeta
+	Build() metav1.ObjectMeta
 
 	Namespace(namespace string) ObjectMeta
 	Name(format string, a ...interface{}) ObjectMeta
@@ -49,35 +49,35 @@ func objectMeta(seed metav1.ObjectMeta) *objectMetaImpl {
 	}
 }
 
-func (f *objectMetaImpl) Get() metav1.ObjectMeta {
-	return *(f.target.DeepCopy())
+func (b *objectMetaImpl) Build() metav1.ObjectMeta {
+	return *(b.target.DeepCopy())
 }
 
-func (f *objectMetaImpl) Mutate(m func(*metav1.ObjectMeta)) ObjectMeta {
-	m(f.target)
-	return f
+func (b *objectMetaImpl) Mutate(m func(*metav1.ObjectMeta)) ObjectMeta {
+	m(b.target)
+	return b
 }
 
-func (f *objectMetaImpl) Namespace(namespace string) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) Namespace(namespace string) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		om.Namespace = namespace
 	})
 }
 
-func (f *objectMetaImpl) Name(format string, a ...interface{}) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) Name(format string, a ...interface{}) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		om.Name = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *objectMetaImpl) GenerateName(format string, a ...interface{}) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) GenerateName(format string, a ...interface{}) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		om.GenerateName = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *objectMetaImpl) AddLabel(key, value string) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) AddLabel(key, value string) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		if om.Labels == nil {
 			om.Labels = map[string]string{}
 		}
@@ -85,8 +85,8 @@ func (f *objectMetaImpl) AddLabel(key, value string) ObjectMeta {
 	})
 }
 
-func (f *objectMetaImpl) AddAnnotation(key, value string) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) AddAnnotation(key, value string) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		if om.Annotations == nil {
 			om.Annotations = map[string]string{}
 		}
@@ -94,14 +94,14 @@ func (f *objectMetaImpl) AddAnnotation(key, value string) ObjectMeta {
 	})
 }
 
-func (f *objectMetaImpl) Generation(generation int64) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) Generation(generation int64) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		om.Generation = generation
 	})
 }
 
-func (f *objectMetaImpl) ControlledBy(owner metav1.Object, scheme *runtime.Scheme) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) ControlledBy(owner metav1.Object, scheme *runtime.Scheme) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		err := ctrl.SetControllerReference(owner, om, scheme)
 		if err != nil {
 			panic(err)
@@ -109,15 +109,15 @@ func (f *objectMetaImpl) ControlledBy(owner metav1.Object, scheme *runtime.Schem
 	})
 }
 
-func (f *objectMetaImpl) Created(sec int64) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) Created(sec int64) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		timestamp := metav1.Unix(sec, 0)
 		om.CreationTimestamp = timestamp
 	})
 }
 
-func (f *objectMetaImpl) Deleted(sec int64) ObjectMeta {
-	return f.Mutate(func(om *metav1.ObjectMeta) {
+func (b *objectMetaImpl) Deleted(sec int64) ObjectMeta {
+	return b.Mutate(func(om *metav1.ObjectMeta) {
 		timestamp := metav1.Unix(sec, 0)
 		om.DeletionTimestamp = &timestamp
 	})

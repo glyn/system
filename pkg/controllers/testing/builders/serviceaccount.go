@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -41,37 +41,37 @@ func ServiceAccount(seed ...*corev1.ServiceAccount) *serviceAccount {
 	}
 }
 
-func (f *serviceAccount) deepCopy() *serviceAccount {
-	return ServiceAccount(f.target.DeepCopy())
+func (b *serviceAccount) deepCopy() *serviceAccount {
+	return ServiceAccount(b.target.DeepCopy())
 }
 
-func (f *serviceAccount) Get() *corev1.ServiceAccount {
-	return f.deepCopy().target
+func (b *serviceAccount) Build() *corev1.ServiceAccount {
+	return b.deepCopy().target
 }
 
-func (f *serviceAccount) Mutate(m func(*corev1.ServiceAccount)) *serviceAccount {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *serviceAccount) Mutate(m func(*corev1.ServiceAccount)) *serviceAccount {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *serviceAccount) NamespaceName(namespace, name string) *serviceAccount {
-	return f.Mutate(func(sa *corev1.ServiceAccount) {
+func (b *serviceAccount) NamespaceName(namespace, name string) *serviceAccount {
+	return b.Mutate(func(sa *corev1.ServiceAccount) {
 		sa.ObjectMeta.Namespace = namespace
 		sa.ObjectMeta.Name = name
 	})
 }
 
-func (f *serviceAccount) ObjectMeta(nf func(ObjectMeta)) *serviceAccount {
-	return f.Mutate(func(sa *corev1.ServiceAccount) {
+func (b *serviceAccount) ObjectMeta(nf func(ObjectMeta)) *serviceAccount {
+	return b.Mutate(func(sa *corev1.ServiceAccount) {
 		omf := objectMeta(sa.ObjectMeta)
 		nf(omf)
-		sa.ObjectMeta = omf.Get()
+		sa.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *serviceAccount) Secrets(secrets ...string) *serviceAccount {
-	return f.Mutate(func(sa *corev1.ServiceAccount) {
+func (b *serviceAccount) Secrets(secrets ...string) *serviceAccount {
+	return b.Mutate(func(sa *corev1.ServiceAccount) {
 		sa.Secrets = make([]corev1.ObjectReference, len(secrets))
 		for i, secret := range secrets {
 			sa.Secrets[i] = corev1.ObjectReference{Name: secret}

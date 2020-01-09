@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"encoding/base64"
@@ -42,43 +42,43 @@ func Secret(seed ...*corev1.Secret) *secret {
 	}
 }
 
-func (f *secret) deepCopy() *secret {
-	return Secret(f.target.DeepCopy())
+func (b *secret) deepCopy() *secret {
+	return Secret(b.target.DeepCopy())
 }
 
-func (f *secret) Get() *corev1.Secret {
-	return f.deepCopy().target
+func (b *secret) Build() *corev1.Secret {
+	return b.deepCopy().target
 }
 
-func (f *secret) Mutate(m func(*corev1.Secret)) *secret {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *secret) Mutate(m func(*corev1.Secret)) *secret {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *secret) NamespaceName(namespace, name string) *secret {
-	return f.Mutate(func(s *corev1.Secret) {
+func (b *secret) NamespaceName(namespace, name string) *secret {
+	return b.Mutate(func(s *corev1.Secret) {
 		s.ObjectMeta.Namespace = namespace
 		s.ObjectMeta.Name = name
 	})
 }
 
-func (f *secret) ObjectMeta(nf func(ObjectMeta)) *secret {
-	return f.Mutate(func(s *corev1.Secret) {
+func (b *secret) ObjectMeta(nf func(ObjectMeta)) *secret {
+	return b.Mutate(func(s *corev1.Secret) {
 		omf := objectMeta(s.ObjectMeta)
 		nf(omf)
-		s.ObjectMeta = omf.Get()
+		s.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *secret) Type(t corev1.SecretType) *secret {
-	return f.Mutate(func(s *corev1.Secret) {
+func (b *secret) Type(t corev1.SecretType) *secret {
+	return b.Mutate(func(s *corev1.Secret) {
 		s.Type = t
 	})
 }
 
-func (f *secret) AddData(key, value string) *secret {
-	return f.Mutate(func(s *corev1.Secret) {
+func (b *secret) AddData(key, value string) *secret {
+	return b.Mutate(func(s *corev1.Secret) {
 		if s.Data == nil {
 			s.Data = map[string][]byte{}
 		}

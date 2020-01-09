@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -45,70 +45,70 @@ func Deployment(seed ...*appsv1.Deployment) *deployment {
 	}
 }
 
-func (f *deployment) deepCopy() *deployment {
-	return Deployment(f.target.DeepCopy())
+func (b *deployment) deepCopy() *deployment {
+	return Deployment(b.target.DeepCopy())
 }
 
-func (f *deployment) Get() *appsv1.Deployment {
-	return f.deepCopy().target
+func (b *deployment) Build() *appsv1.Deployment {
+	return b.deepCopy().target
 }
 
-func (f *deployment) Mutate(m func(*appsv1.Deployment)) *deployment {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *deployment) Mutate(m func(*appsv1.Deployment)) *deployment {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *deployment) NamespaceName(namespace, name string) *deployment {
-	return f.Mutate(func(sa *appsv1.Deployment) {
+func (b *deployment) NamespaceName(namespace, name string) *deployment {
+	return b.Mutate(func(sa *appsv1.Deployment) {
 		sa.ObjectMeta.Namespace = namespace
 		sa.ObjectMeta.Name = name
 	})
 }
 
-func (f *deployment) ObjectMeta(nf func(ObjectMeta)) *deployment {
-	return f.Mutate(func(sa *appsv1.Deployment) {
+func (b *deployment) ObjectMeta(nf func(ObjectMeta)) *deployment {
+	return b.Mutate(func(sa *appsv1.Deployment) {
 		omf := objectMeta(sa.ObjectMeta)
 		nf(omf)
-		sa.ObjectMeta = omf.Get()
+		sa.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *deployment) PodTemplateSpec(nf func(PodTemplateSpec)) *deployment {
-	return f.Mutate(func(deployment *appsv1.Deployment) {
+func (b *deployment) PodTemplateSpec(nf func(PodTemplateSpec)) *deployment {
+	return b.Mutate(func(deployment *appsv1.Deployment) {
 		ptsf := podTemplateSpec(deployment.Spec.Template)
 		nf(ptsf)
-		deployment.Spec.Template = ptsf.Get()
+		deployment.Spec.Template = ptsf.Build()
 	})
 }
 
-func (f *deployment) HandlerContainer(cb func(*corev1.Container)) *deployment {
-	return f.PodTemplateSpec(func(pts PodTemplateSpec) {
+func (b *deployment) HandlerContainer(cb func(*corev1.Container)) *deployment {
+	return b.PodTemplateSpec(func(pts PodTemplateSpec) {
 		pts.ContainerNamed("handler", cb)
 	})
 }
 
-func (f *deployment) Replicas(replicas int32) *deployment {
-	return f.Mutate(func(deployment *appsv1.Deployment) {
+func (b *deployment) Replicas(replicas int32) *deployment {
+	return b.Mutate(func(deployment *appsv1.Deployment) {
 		deployment.Spec.Replicas = rtesting.Int32Ptr(replicas)
 	})
 }
 
-func (f *deployment) AddSelectorLabel(key, value string) *deployment {
-	return f.Mutate(func(deployment *appsv1.Deployment) {
+func (b *deployment) AddSelectorLabel(key, value string) *deployment {
+	return b.Mutate(func(deployment *appsv1.Deployment) {
 		if deployment.Spec.Selector == nil {
 			deployment.Spec.Selector = &metav1.LabelSelector{}
 		}
 		metav1.AddLabelToSelector(deployment.Spec.Selector, key, value)
-		deployment.Spec.Template = podTemplateSpec(deployment.Spec.Template).AddLabel(key, value).Get()
+		deployment.Spec.Template = podTemplateSpec(deployment.Spec.Template).AddLabel(key, value).Build()
 	})
 }
 
-func (f *deployment) StatusConditions(conditions ...*condition) *deployment {
-	return f.Mutate(func(deployment *appsv1.Deployment) {
+func (b *deployment) StatusConditions(conditions ...*condition) *deployment {
+	return b.Mutate(func(deployment *appsv1.Deployment) {
 		c := make([]appsv1.DeploymentCondition, len(conditions))
 		for i, cg := range conditions {
-			dc := cg.Get()
+			dc := cg.Build()
 			c[i] = appsv1.DeploymentCondition{
 				Type:    appsv1.DeploymentConditionType(dc.Type),
 				Status:  dc.Status,

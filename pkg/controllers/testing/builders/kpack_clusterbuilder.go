@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -42,65 +42,65 @@ func KpackClusterBuilder(seed ...*kpackbuildv1alpha1.ClusterBuilder) *kpackClust
 	}
 }
 
-func (f *kpackClusterBuilder) deepCopy() *kpackClusterBuilder {
-	return KpackClusterBuilder(f.target.DeepCopy())
+func (b *kpackClusterBuilder) deepCopy() *kpackClusterBuilder {
+	return KpackClusterBuilder(b.target.DeepCopy())
 }
 
-func (f *kpackClusterBuilder) Get() *kpackbuildv1alpha1.ClusterBuilder {
-	return f.deepCopy().target
+func (b *kpackClusterBuilder) Build() *kpackbuildv1alpha1.ClusterBuilder {
+	return b.deepCopy().target
 }
 
-func (f *kpackClusterBuilder) Mutate(m func(*kpackbuildv1alpha1.ClusterBuilder)) *kpackClusterBuilder {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *kpackClusterBuilder) Mutate(m func(*kpackbuildv1alpha1.ClusterBuilder)) *kpackClusterBuilder {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *kpackClusterBuilder) NamespaceName(namespace, name string) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) NamespaceName(namespace, name string) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		cb.ObjectMeta.Namespace = namespace
 		cb.ObjectMeta.Name = name
 	})
 }
 
-func (f *kpackClusterBuilder) ObjectMeta(nf func(ObjectMeta)) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) ObjectMeta(nf func(ObjectMeta)) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		omf := objectMeta(cb.ObjectMeta)
 		nf(omf)
-		cb.ObjectMeta = omf.Get()
+		cb.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *kpackClusterBuilder) Image(format string, a ...interface{}) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) Image(format string, a ...interface{}) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		cb.Spec.Image = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *kpackClusterBuilder) StatusConditions(conditions ...*condition) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) StatusConditions(conditions ...*condition) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		cb.Status.Conditions = c
 	})
 }
 
-func (f *kpackClusterBuilder) StatusReady() *kpackClusterBuilder {
-	return f.StatusConditions(
+func (b *kpackClusterBuilder) StatusReady() *kpackClusterBuilder {
+	return b.StatusConditions(
 		Condition().Type(apis.ConditionReady).True(),
 	)
 }
 
-func (f *kpackClusterBuilder) StatusObservedGeneration(generation int64) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) StatusObservedGeneration(generation int64) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		cb.Status.ObservedGeneration = generation
 	})
 }
 
-func (f *kpackClusterBuilder) StatusLatestImage(format string, a ...interface{}) *kpackClusterBuilder {
-	return f.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
+func (b *kpackClusterBuilder) StatusLatestImage(format string, a ...interface{}) *kpackClusterBuilder {
+	return b.Mutate(func(cb *kpackbuildv1alpha1.ClusterBuilder) {
 		cb.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }

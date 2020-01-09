@@ -30,7 +30,7 @@ import (
 	kpackbuildv1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/kpack/build/v1alpha1"
 	"github.com/projectriff/system/pkg/controllers/build"
 	rtesting "github.com/projectriff/system/pkg/controllers/testing"
-	"github.com/projectriff/system/pkg/controllers/testing/factories"
+	"github.com/projectriff/system/pkg/controllers/testing/builders"
 	"github.com/projectriff/system/pkg/tracker"
 )
 
@@ -41,24 +41,24 @@ func TestContainerReconciler(t *testing.T) {
 	testImagePrefix := "example.com/repo"
 	testSha256 := "cf8b4c69d5460f88530e1c80b8856a70801f31c50b191c8413043ba9b160a43e"
 
-	containerConditionImageResolved := factories.Condition().Type(buildv1alpha1.ContainerConditionImageResolved)
-	containerConditionReady := factories.Condition().Type(buildv1alpha1.ContainerConditionReady)
+	containerConditionImageResolved := builders.Condition().Type(buildv1alpha1.ContainerConditionImageResolved)
+	containerConditionReady := builders.Condition().Type(buildv1alpha1.ContainerConditionReady)
 
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = kpackbuildv1alpha1.AddToScheme(scheme)
 	_ = buildv1alpha1.AddToScheme(scheme)
 
-	containerMinimal := factories.Container().
+	containerMinimal := builders.Container().
 		NamespaceName(testNamespace, testName)
 	containerValid := containerMinimal.
 		Image("%s/%s", testImagePrefix, testName)
 
-	cmImagePrefix := factories.ConfigMap().
+	cmImagePrefix := builders.ConfigMap().
 		NamespaceName(testNamespace, "riff-build").
 		AddData("default-image-prefix", "")
 
-	serviceAccount := factories.ServiceAccount().
+	serviceAccount := builders.ServiceAccount().
 		NamespaceName(testNamespace, "riff-build")
 
 	table := rtesting.Table{{
@@ -69,7 +69,7 @@ func TestContainerReconciler(t *testing.T) {
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			containerValid.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.Deleted(1)
 				}).
 				Get(),
@@ -81,7 +81,7 @@ func TestContainerReconciler(t *testing.T) {
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			containerValid.Get(),
-			serviceAccount.Get(),
+			serviceAccount.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			containerMinimal.
@@ -108,9 +108,9 @@ func TestContainerReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			cmImagePrefix.
 				AddData("default-image-prefix", testImagePrefix).
-				Get(),
+				Build(),
 			containerMinimal.Get(),
-			serviceAccount.Get(),
+			serviceAccount.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			containerMinimal.
@@ -140,7 +140,7 @@ func TestContainerReconciler(t *testing.T) {
 		Name: "default image, undefined",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			cmImagePrefix.Get(),
+			cmImagePrefix.Build(),
 			containerMinimal.Get(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
@@ -159,7 +159,7 @@ func TestContainerReconciler(t *testing.T) {
 			rtesting.InduceFailure("get", "ConfigMap"),
 		},
 		GivenObjects: []runtime.Object{
-			cmImagePrefix.Get(),
+			cmImagePrefix.Build(),
 			containerMinimal.Get(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
@@ -181,7 +181,7 @@ func TestContainerReconciler(t *testing.T) {
 		},
 		GivenObjects: []runtime.Object{
 			containerValid.Get(),
-			serviceAccount.Get(),
+			serviceAccount.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			containerMinimal.

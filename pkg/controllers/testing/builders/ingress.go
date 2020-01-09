@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -43,37 +43,37 @@ func Ingress(seed ...*networkingv1beta1.Ingress) *ingress {
 	}
 }
 
-func (f *ingress) deepCopy() *ingress {
-	return Ingress(f.target.DeepCopy())
+func (b *ingress) deepCopy() *ingress {
+	return Ingress(b.target.DeepCopy())
 }
 
-func (f *ingress) Get() *networkingv1beta1.Ingress {
-	return f.deepCopy().target
+func (b *ingress) Build() *networkingv1beta1.Ingress {
+	return b.deepCopy().target
 }
 
-func (f *ingress) Mutate(m func(*networkingv1beta1.Ingress)) *ingress {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *ingress) Mutate(m func(*networkingv1beta1.Ingress)) *ingress {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *ingress) NamespaceName(namespace, name string) *ingress {
-	return f.Mutate(func(sa *networkingv1beta1.Ingress) {
+func (b *ingress) NamespaceName(namespace, name string) *ingress {
+	return b.Mutate(func(sa *networkingv1beta1.Ingress) {
 		sa.ObjectMeta.Namespace = namespace
 		sa.ObjectMeta.Name = name
 	})
 }
 
-func (f *ingress) ObjectMeta(nf func(ObjectMeta)) *ingress {
-	return f.Mutate(func(sa *networkingv1beta1.Ingress) {
+func (b *ingress) ObjectMeta(nf func(ObjectMeta)) *ingress {
+	return b.Mutate(func(sa *networkingv1beta1.Ingress) {
 		omf := objectMeta(sa.ObjectMeta)
 		nf(omf)
-		sa.ObjectMeta = omf.Get()
+		sa.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *ingress) HostToService(host, serviceName string) *ingress {
-	return f.Mutate(func(i *networkingv1beta1.Ingress) {
+func (b *ingress) HostToService(host, serviceName string) *ingress {
+	return b.Mutate(func(i *networkingv1beta1.Ingress) {
 		i.Spec = networkingv1beta1.IngressSpec{
 			Rules: []networkingv1beta1.IngressRule{{
 				Host: host,
@@ -93,8 +93,8 @@ func (f *ingress) HostToService(host, serviceName string) *ingress {
 	})
 }
 
-func (f *ingress) StatusLoadBalancer(ingress ...corev1.LoadBalancerIngress) *ingress {
-	return f.Mutate(func(i *networkingv1beta1.Ingress) {
+func (b *ingress) StatusLoadBalancer(ingress ...corev1.LoadBalancerIngress) *ingress {
+	return b.Mutate(func(i *networkingv1beta1.Ingress) {
 		i.Status.LoadBalancer.Ingress = ingress
 	})
 }

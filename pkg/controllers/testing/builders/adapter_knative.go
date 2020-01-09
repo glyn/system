@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -42,93 +42,93 @@ func AdapterKnative(seed ...*knativev1alpha1.Adapter) *adapterKnative {
 	}
 }
 
-func (f *adapterKnative) deepCopy() *adapterKnative {
-	return AdapterKnative(f.target.DeepCopy())
+func (b *adapterKnative) deepCopy() *adapterKnative {
+	return AdapterKnative(b.target.DeepCopy())
 }
 
-func (f *adapterKnative) Get() *knativev1alpha1.Adapter {
-	return f.deepCopy().target
+func (b *adapterKnative) Build() *knativev1alpha1.Adapter {
+	return b.deepCopy().target
 }
 
-func (f *adapterKnative) Mutate(m func(*knativev1alpha1.Adapter)) *adapterKnative {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *adapterKnative) Mutate(m func(*knativev1alpha1.Adapter)) *adapterKnative {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *adapterKnative) NamespaceName(namespace, name string) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) NamespaceName(namespace, name string) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.ObjectMeta.Namespace = namespace
 		adapter.ObjectMeta.Name = name
 	})
 }
 
-func (f *adapterKnative) ObjectMeta(nf func(ObjectMeta)) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) ObjectMeta(nf func(ObjectMeta)) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		omf := objectMeta(adapter.ObjectMeta)
 		nf(omf)
-		adapter.ObjectMeta = omf.Get()
+		adapter.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *adapterKnative) ApplicationRef(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) ApplicationRef(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Spec.Build = knativev1alpha1.Build{
 			ApplicationRef: fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *adapterKnative) ContainerRef(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) ContainerRef(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Spec.Build = knativev1alpha1.Build{
 			ContainerRef: fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *adapterKnative) FunctionRef(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) FunctionRef(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Spec.Build = knativev1alpha1.Build{
 			FunctionRef: fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *adapterKnative) ConfigurationRef(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) ConfigurationRef(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Spec.Target = knativev1alpha1.AdapterTarget{
 			ConfigurationRef: fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *adapterKnative) ServiceRef(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) ServiceRef(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Spec.Target = knativev1alpha1.AdapterTarget{
 			ServiceRef: fmt.Sprintf(format, a...),
 		}
 	})
 }
 
-func (f *adapterKnative) StatusConditions(conditions ...*condition) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) StatusConditions(conditions ...*condition) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		adapter.Status.Conditions = c
 	})
 }
 
-func (f *adapterKnative) StatusObservedGeneration(generation int64) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) StatusObservedGeneration(generation int64) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Status.ObservedGeneration = generation
 	})
 }
 
-func (f *adapterKnative) StatusLatestImage(format string, a ...interface{}) *adapterKnative {
-	return f.Mutate(func(adapter *knativev1alpha1.Adapter) {
+func (b *adapterKnative) StatusLatestImage(format string, a ...interface{}) *adapterKnative {
+	return b.Mutate(func(adapter *knativev1alpha1.Adapter) {
 		adapter.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }

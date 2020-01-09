@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -44,37 +44,37 @@ func KnativeConfiguration(seed ...*knativeservingv1.Configuration) *knativeConfi
 	}
 }
 
-func (f *knativeConfiguration) deepCopy() *knativeConfiguration {
-	return KnativeConfiguration(f.target.DeepCopy())
+func (b *knativeConfiguration) deepCopy() *knativeConfiguration {
+	return KnativeConfiguration(b.target.DeepCopy())
 }
 
-func (f *knativeConfiguration) Get() *knativeservingv1.Configuration {
-	return f.deepCopy().target
+func (b *knativeConfiguration) Build() *knativeservingv1.Configuration {
+	return b.deepCopy().target
 }
 
-func (f *knativeConfiguration) Mutate(m func(*knativeservingv1.Configuration)) *knativeConfiguration {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *knativeConfiguration) Mutate(m func(*knativeservingv1.Configuration)) *knativeConfiguration {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *knativeConfiguration) NamespaceName(namespace, name string) *knativeConfiguration {
-	return f.Mutate(func(configuration *knativeservingv1.Configuration) {
+func (b *knativeConfiguration) NamespaceName(namespace, name string) *knativeConfiguration {
+	return b.Mutate(func(configuration *knativeservingv1.Configuration) {
 		configuration.ObjectMeta.Namespace = namespace
 		configuration.ObjectMeta.Name = name
 	})
 }
 
-func (f *knativeConfiguration) ObjectMeta(nf func(ObjectMeta)) *knativeConfiguration {
-	return f.Mutate(func(configuration *knativeservingv1.Configuration) {
+func (b *knativeConfiguration) ObjectMeta(nf func(ObjectMeta)) *knativeConfiguration {
+	return b.Mutate(func(configuration *knativeservingv1.Configuration) {
 		omf := objectMeta(configuration.ObjectMeta)
 		nf(omf)
-		configuration.ObjectMeta = omf.Get()
+		configuration.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *knativeConfiguration) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeConfiguration {
-	return f.Mutate(func(configuration *knativeservingv1.Configuration) {
+func (b *knativeConfiguration) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeConfiguration {
+	return b.Mutate(func(configuration *knativeservingv1.Configuration) {
 		ptsf := podTemplateSpec(
 			// convert RevisionTemplateSpec into PodTemplateSpec
 			corev1.PodTemplateSpec{
@@ -83,37 +83,37 @@ func (f *knativeConfiguration) PodTemplateSpec(nf func(PodTemplateSpec)) *knativ
 			},
 		)
 		nf(ptsf)
-		template := ptsf.Get()
+		template := ptsf.Build()
 		// update RevisionTemplateSpec with PodTemplateSpec managed fields
 		configuration.Spec.Template.ObjectMeta = template.ObjectMeta
 		configuration.Spec.Template.Spec.PodSpec = template.Spec
 	})
 }
 
-func (f *knativeConfiguration) UserContainer(cb func(*corev1.Container)) *knativeConfiguration {
-	return f.PodTemplateSpec(func(pts PodTemplateSpec) {
+func (b *knativeConfiguration) UserContainer(cb func(*corev1.Container)) *knativeConfiguration {
+	return b.PodTemplateSpec(func(pts PodTemplateSpec) {
 		pts.ContainerNamed("user-container", cb)
 	})
 }
 
-func (f *knativeConfiguration) StatusConditions(conditions ...*condition) *knativeConfiguration {
-	return f.Mutate(func(configuration *knativeservingv1.Configuration) {
+func (b *knativeConfiguration) StatusConditions(conditions ...*condition) *knativeConfiguration {
+	return b.Mutate(func(configuration *knativeservingv1.Configuration) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		configuration.Status.Conditions = c
 	})
 }
 
-func (f *knativeConfiguration) StatusReady() *knativeConfiguration {
-	return f.StatusConditions(
+func (b *knativeConfiguration) StatusReady() *knativeConfiguration {
+	return b.StatusConditions(
 		Condition().Type(knativeservingv1.ConfigurationConditionReady).True(),
 	)
 }
 
-func (f *knativeConfiguration) StatusObservedGeneration(generation int64) *knativeConfiguration {
-	return f.Mutate(func(configuration *knativeservingv1.Configuration) {
+func (b *knativeConfiguration) StatusObservedGeneration(generation int64) *knativeConfiguration {
+	return b.Mutate(func(configuration *knativeservingv1.Configuration) {
 		configuration.Status.ObservedGeneration = generation
 	})
 }

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -46,37 +46,37 @@ func Processor(seed ...*streamingv1alpha1.Processor) *processor {
 	}
 }
 
-func (f *processor) deepCopy() *processor {
-	return Processor(f.target.DeepCopy())
+func (b *processor) deepCopy() *processor {
+	return Processor(b.target.DeepCopy())
 }
 
-func (f *processor) Get() *streamingv1alpha1.Processor {
-	return f.deepCopy().target
+func (b *processor) Build() *streamingv1alpha1.Processor {
+	return b.deepCopy().target
 }
 
-func (f *processor) Mutate(m func(*streamingv1alpha1.Processor)) *processor {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *processor) Mutate(m func(*streamingv1alpha1.Processor)) *processor {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *processor) NamespaceName(namespace, name string) *processor {
-	return f.Mutate(func(p *streamingv1alpha1.Processor) {
+func (b *processor) NamespaceName(namespace, name string) *processor {
+	return b.Mutate(func(p *streamingv1alpha1.Processor) {
 		p.ObjectMeta.Namespace = namespace
 		p.ObjectMeta.Name = name
 	})
 }
 
-func (f *processor) ObjectMeta(nf func(ObjectMeta)) *processor {
-	return f.Mutate(func(s *streamingv1alpha1.Processor) {
+func (b *processor) ObjectMeta(nf func(ObjectMeta)) *processor {
+	return b.Mutate(func(s *streamingv1alpha1.Processor) {
 		omf := objectMeta(s.ObjectMeta)
 		nf(omf)
-		s.ObjectMeta = omf.Get()
+		s.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *processor) PodTemplateSpec(nf func(PodTemplateSpec)) *processor {
-	return f.Mutate(func(processor *streamingv1alpha1.Processor) {
+func (b *processor) PodTemplateSpec(nf func(PodTemplateSpec)) *processor {
+	return b.Mutate(func(processor *streamingv1alpha1.Processor) {
 		var ptsf *podTemplateSpecImpl
 		if processor.Spec.Template != nil {
 			ptsf = podTemplateSpec(*processor.Spec.Template)
@@ -84,16 +84,16 @@ func (f *processor) PodTemplateSpec(nf func(PodTemplateSpec)) *processor {
 			ptsf = podTemplateSpec(corev1.PodTemplateSpec{})
 		}
 		nf(ptsf)
-		templateSpec := ptsf.Get()
+		templateSpec := ptsf.Build()
 		processor.Spec.Template = &templateSpec
 	})
 }
 
-func (f *processor) StatusConditions(conditions ...*condition) *processor {
-	return f.Mutate(func(processor *streamingv1alpha1.Processor) {
+func (b *processor) StatusConditions(conditions ...*condition) *processor {
+	return b.Mutate(func(processor *streamingv1alpha1.Processor) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			dc := cg.Get()
+			dc := cg.Build()
 			c[i] = apis.Condition{
 				Type:    apis.ConditionType(dc.Type),
 				Status:  dc.Status,
@@ -105,14 +105,14 @@ func (f *processor) StatusConditions(conditions ...*condition) *processor {
 	})
 }
 
-func (f *processor) StatusLatestImage(image string) *processor {
-	return f.Mutate(func(proc *streamingv1alpha1.Processor) {
+func (b *processor) StatusLatestImage(image string) *processor {
+	return b.Mutate(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.LatestImage = image
 	})
 }
 
-func (f *processor) StatusDeploymentRef(deploymentName string) *processor {
-	return f.Mutate(func(proc *streamingv1alpha1.Processor) {
+func (b *processor) StatusDeploymentRef(deploymentName string) *processor {
+	return b.Mutate(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.DeploymentRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("apps"),
 			Kind:     "Deployment",
@@ -121,24 +121,24 @@ func (f *processor) StatusDeploymentRef(deploymentName string) *processor {
 	})
 }
 
-func (f *processor) SpecBuildFunctionRef(functionName string) *processor {
-	return f.Mutate(func(proc *streamingv1alpha1.Processor) {
+func (b *processor) SpecBuildFunctionRef(functionName string) *processor {
+	return b.Mutate(func(proc *streamingv1alpha1.Processor) {
 		proc.Spec.Build = &streamingv1alpha1.Build{
 			FunctionRef: functionName,
 		}
 	})
 }
 
-func (f *processor) SpecBuildContainerRef(containerName string) *processor {
-	return f.Mutate(func(proc *streamingv1alpha1.Processor) {
+func (b *processor) SpecBuildContainerRef(containerName string) *processor {
+	return b.Mutate(func(proc *streamingv1alpha1.Processor) {
 		proc.Spec.Build = &streamingv1alpha1.Build{
 			ContainerRef: containerName,
 		}
 	})
 }
 
-func (f *processor) StatusScaledObjectRef(deploymentName string) *processor {
-	return f.Mutate(func(proc *streamingv1alpha1.Processor) {
+func (b *processor) StatusScaledObjectRef(deploymentName string) *processor {
+	return b.Mutate(func(proc *streamingv1alpha1.Processor) {
 		proc.Status.ScaledObjectRef = &refs.TypedLocalObjectReference{
 			APIGroup: rtesting.StringPtr("keda.k8s.io"),
 			Kind:     "ScaledObject",

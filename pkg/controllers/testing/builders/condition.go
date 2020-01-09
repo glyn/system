@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -43,67 +43,67 @@ func Condition(seed ...apis.Condition) *condition {
 	}
 }
 
-func (f *condition) deepCopy() *condition {
-	return Condition(*f.target.DeepCopy())
+func (b *condition) deepCopy() *condition {
+	return Condition(*b.target.DeepCopy())
 }
 
-func (f *condition) Get() apis.Condition {
-	return *f.deepCopy().target
+func (b *condition) Build() apis.Condition {
+	return *b.deepCopy().target
 }
 
-func (f *condition) Mutate(m func(*apis.Condition)) *condition {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *condition) Mutate(m func(*apis.Condition)) *condition {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *condition) Type(t apis.ConditionType) *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Type(t apis.ConditionType) *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Type = t
 	})
 }
 
-func (f *condition) Unknown() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Unknown() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Status = corev1.ConditionUnknown
 	})
 }
 
-func (f *condition) True() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) True() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Status = corev1.ConditionTrue
 		c.Reason = ""
 		c.Message = ""
 	})
 }
 
-func (f *condition) False() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) False() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Status = corev1.ConditionFalse
 	})
 }
 
-func (f *condition) Reason(reason, message string) *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Reason(reason, message string) *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Reason = reason
 		c.Message = message
 	})
 }
 
-func (f *condition) Info() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Info() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Severity = apis.ConditionSeverityInfo
 	})
 }
 
-func (f *condition) Warning() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Warning() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Severity = apis.ConditionSeverityWarning
 	})
 }
 
-func (f *condition) Error() *condition {
-	return f.Mutate(func(c *apis.Condition) {
+func (b *condition) Error() *condition {
+	return b.Mutate(func(c *apis.Condition) {
 		c.Severity = apis.ConditionSeverityError
 	})
 }

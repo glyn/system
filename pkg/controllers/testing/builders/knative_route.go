@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -42,73 +42,73 @@ func KnativeRoute(seed ...*knativeservingv1.Route) *knativeRoute {
 	}
 }
 
-func (f *knativeRoute) deepCopy() *knativeRoute {
-	return KnativeRoute(f.target.DeepCopy())
+func (b *knativeRoute) deepCopy() *knativeRoute {
+	return KnativeRoute(b.target.DeepCopy())
 }
 
-func (f *knativeRoute) Get() *knativeservingv1.Route {
-	return f.deepCopy().target
+func (b *knativeRoute) Build() *knativeservingv1.Route {
+	return b.deepCopy().target
 }
 
-func (f *knativeRoute) Mutate(m func(*knativeservingv1.Route)) *knativeRoute {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *knativeRoute) Mutate(m func(*knativeservingv1.Route)) *knativeRoute {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *knativeRoute) NamespaceName(namespace, name string) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) NamespaceName(namespace, name string) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		route.ObjectMeta.Namespace = namespace
 		route.ObjectMeta.Name = name
 	})
 }
 
-func (f *knativeRoute) ObjectMeta(nf func(ObjectMeta)) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) ObjectMeta(nf func(ObjectMeta)) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		omf := objectMeta(route.ObjectMeta)
 		nf(omf)
-		route.ObjectMeta = omf.Get()
+		route.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *knativeRoute) Traffic(traffic ...knativeservingv1.TrafficTarget) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) Traffic(traffic ...knativeservingv1.TrafficTarget) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		route.Spec.Traffic = traffic
 	})
 }
 
-func (f *knativeRoute) StatusConditions(conditions ...*condition) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) StatusConditions(conditions ...*condition) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		route.Status.Conditions = c
 	})
 }
 
-func (f *knativeRoute) StatusReady() *knativeRoute {
-	return f.StatusConditions(
+func (b *knativeRoute) StatusReady() *knativeRoute {
+	return b.StatusConditions(
 		Condition().Type(knativeservingv1.RouteConditionReady).True(),
 	)
 }
 
-func (f *knativeRoute) StatusObservedGeneration(generation int64) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) StatusObservedGeneration(generation int64) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		route.Status.ObservedGeneration = generation
 	})
 }
 
-func (f *knativeRoute) StatusAddressURL(url string) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) StatusAddressURL(url string) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		route.Status.Address = &apis.Addressable{
 			URL: url,
 		}
 	})
 }
 
-func (f *knativeRoute) StatusURL(url string) *knativeRoute {
-	return f.Mutate(func(route *knativeservingv1.Route) {
+func (b *knativeRoute) StatusURL(url string) *knativeRoute {
+	return b.Mutate(func(route *knativeservingv1.Route) {
 		route.Status.URL = url
 	})
 }

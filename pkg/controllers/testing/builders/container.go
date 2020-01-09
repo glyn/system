@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -42,71 +42,71 @@ func Container(seed ...*buildv1alpha1.Container) *container {
 	}
 }
 
-func (f *container) deepCopy() *container {
-	return Container(f.target.DeepCopy())
+func (b *container) deepCopy() *container {
+	return Container(b.target.DeepCopy())
 }
 
-func (f *container) Get() *buildv1alpha1.Container {
-	return f.deepCopy().target
+func (b *container) Get() *buildv1alpha1.Container {
+	return b.deepCopy().target
 }
 
-func (f *container) Mutate(m func(*buildv1alpha1.Container)) *container {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *container) Mutate(m func(*buildv1alpha1.Container)) *container {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *container) NamespaceName(namespace, name string) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) NamespaceName(namespace, name string) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		con.ObjectMeta.Namespace = namespace
 		con.ObjectMeta.Name = name
 	})
 }
 
-func (f *container) ObjectMeta(nf func(ObjectMeta)) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) ObjectMeta(nf func(ObjectMeta)) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		omf := objectMeta(con.ObjectMeta)
 		nf(omf)
-		con.ObjectMeta = omf.Get()
+		con.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *container) Image(format string, a ...interface{}) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) Image(format string, a ...interface{}) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		con.Spec.Image = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *container) StatusConditions(conditions ...*condition) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) StatusConditions(conditions ...*condition) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		con.Status.Conditions = c
 	})
 }
 
-func (f *container) StatusReady() *container {
-	return f.StatusConditions(
+func (b *container) StatusReady() *container {
+	return b.StatusConditions(
 		Condition().Type(buildv1alpha1.ContainerConditionReady).True(),
 	)
 }
 
-func (f *container) StatusObservedGeneration(generation int64) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) StatusObservedGeneration(generation int64) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		con.Status.ObservedGeneration = generation
 	})
 }
 
-func (f *container) StatusTargetImage(format string, a ...interface{}) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) StatusTargetImage(format string, a ...interface{}) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		con.Status.TargetImage = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *container) StatusLatestImage(format string, a ...interface{}) *container {
-	return f.Mutate(func(con *buildv1alpha1.Container) {
+func (b *container) StatusLatestImage(format string, a ...interface{}) *container {
+	return b.Mutate(func(con *buildv1alpha1.Container) {
 		con.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }

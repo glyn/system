@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -44,37 +44,37 @@ func KnativeService(seed ...*knativeservingv1.Service) *knativeService {
 	}
 }
 
-func (f *knativeService) deepCopy() *knativeService {
-	return KnativeService(f.target.DeepCopy())
+func (b *knativeService) deepCopy() *knativeService {
+	return KnativeService(b.target.DeepCopy())
 }
 
-func (f *knativeService) Get() *knativeservingv1.Service {
-	return f.deepCopy().target
+func (b *knativeService) Build() *knativeservingv1.Service {
+	return b.deepCopy().target
 }
 
-func (f *knativeService) Mutate(m func(*knativeservingv1.Service)) *knativeService {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *knativeService) Mutate(m func(*knativeservingv1.Service)) *knativeService {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *knativeService) NamespaceName(namespace, name string) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+func (b *knativeService) NamespaceName(namespace, name string) *knativeService {
+	return b.Mutate(func(service *knativeservingv1.Service) {
 		service.ObjectMeta.Namespace = namespace
 		service.ObjectMeta.Name = name
 	})
 }
 
-func (f *knativeService) ObjectMeta(nf func(ObjectMeta)) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+func (b *knativeService) ObjectMeta(nf func(ObjectMeta)) *knativeService {
+	return b.Mutate(func(service *knativeservingv1.Service) {
 		omf := objectMeta(service.ObjectMeta)
 		nf(omf)
-		service.ObjectMeta = omf.Get()
+		service.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *knativeService) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+func (b *knativeService) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeService {
+	return b.Mutate(func(service *knativeservingv1.Service) {
 		ptsf := podTemplateSpec(
 			// convert RevisionTemplateSpec into PodTemplateSpec
 			corev1.PodTemplateSpec{
@@ -83,37 +83,37 @@ func (f *knativeService) PodTemplateSpec(nf func(PodTemplateSpec)) *knativeServi
 			},
 		)
 		nf(ptsf)
-		template := ptsf.Get()
+		template := ptsf.Build()
 		// update RevisionTemplateSpec with PodTemplateSpec managed fields
 		service.Spec.Template.ObjectMeta = template.ObjectMeta
 		service.Spec.Template.Spec.PodSpec = template.Spec
 	})
 }
 
-func (f *knativeService) UserContainer(cb func(*corev1.Container)) *knativeService {
-	return f.PodTemplateSpec(func(pts PodTemplateSpec) {
+func (b *knativeService) UserContainer(cb func(*corev1.Container)) *knativeService {
+	return b.PodTemplateSpec(func(pts PodTemplateSpec) {
 		pts.ContainerNamed("user-container", cb)
 	})
 }
 
-func (f *knativeService) StatusConditions(conditions ...*condition) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+func (b *knativeService) StatusConditions(conditions ...*condition) *knativeService {
+	return b.Mutate(func(service *knativeservingv1.Service) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		service.Status.Conditions = c
 	})
 }
 
-func (f *knativeService) StatusReady() *knativeService {
-	return f.StatusConditions(
+func (b *knativeService) StatusReady() *knativeService {
+	return b.StatusConditions(
 		Condition().Type(apis.ConditionReady).True(),
 	)
 }
 
-func (f *knativeService) StatusObservedGeneration(generation int64) *knativeService {
-	return f.Mutate(func(service *knativeservingv1.Service) {
+func (b *knativeService) StatusObservedGeneration(generation int64) *knativeService {
+	return b.Mutate(func(service *knativeservingv1.Service) {
 		service.Status.ObservedGeneration = generation
 	})
 }

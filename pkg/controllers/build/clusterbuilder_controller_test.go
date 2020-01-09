@@ -29,7 +29,7 @@ import (
 	kpackbuildv1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/kpack/build/v1alpha1"
 	"github.com/projectriff/system/pkg/controllers/build"
 	rtesting "github.com/projectriff/system/pkg/controllers/testing"
-	"github.com/projectriff/system/pkg/controllers/testing/factories"
+	"github.com/projectriff/system/pkg/controllers/testing/builders"
 	"github.com/projectriff/system/pkg/tracker"
 )
 
@@ -44,45 +44,45 @@ func TestClusterBuildersReconciler(t *testing.T) {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = kpackbuildv1alpha1.AddToScheme(scheme)
 
-	testApplicationBuilder := factories.KpackClusterBuilder().
+	testApplicationBuilder := builders.KpackClusterBuilder().
 		NamespaceName("", "riff-application").
 		Image(testApplicationImage)
 	testApplicationBuilderReady := testApplicationBuilder.
 		StatusReady().
 		StatusLatestImage(testApplicationImage)
-	testFunctionBuilder := factories.KpackClusterBuilder().
+	testFunctionBuilder := builders.KpackClusterBuilder().
 		NamespaceName("", "riff-function").
 		Image(testFunctionImage)
 	testFunctionBuilderReady := testFunctionBuilder.
 		StatusReady().
 		StatusLatestImage(testFunctionImage)
 
-	testBuilders := factories.ConfigMap().
+	testBuilders := builders.ConfigMap().
 		NamespaceName(testNamespace, testName)
 
 	table := rtesting.Table{{
 		Name: "builders configmap does not exist",
 		Key:  testKey,
 		ExpectCreates: []runtime.Object{
-			testBuilders.Get(),
+			testBuilders.Build(),
 		},
 	}, {
 		Name: "builders configmap unchanged",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			testBuilders.Get(),
+			testBuilders.Build(),
 		},
 	}, {
 		Name: "ignore deleted builders configmap",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			testBuilders.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.Deleted(1)
 				}).
-				Get(),
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+				Build(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 	}, {
 		Name: "ignore other configmaps in the correct namespace",
@@ -90,9 +90,9 @@ func TestClusterBuildersReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			testBuilders.
 				NamespaceName(testNamespace, "not-builders").
-				Get(),
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+				Build(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 	}, {
 		Name: "ignore other configmaps in the wrong namespace",
@@ -100,35 +100,35 @@ func TestClusterBuildersReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			testBuilders.
 				NamespaceName("not-riff-system", testName).
-				Get(),
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+				Build(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 	}, {
 		Name: "create builders configmap, not ready",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 		ExpectCreates: []runtime.Object{
 			testBuilders.
 				AddData("riff-application", "").
 				AddData("riff-function", "").
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "create builders configmap, ready",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			testApplicationBuilderReady.Get(),
-			testFunctionBuilderReady.Get(),
+			testApplicationBuilderReady.Build(),
+			testFunctionBuilderReady.Build(),
 		},
 		ExpectCreates: []runtime.Object{
 			testBuilders.
 				AddData("riff-application", testApplicationImage).
 				AddData("riff-function", testFunctionImage).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "create builders configmap, error",
@@ -137,29 +137,29 @@ func TestClusterBuildersReconciler(t *testing.T) {
 			rtesting.InduceFailure("create", "ConfigMap"),
 		},
 		GivenObjects: []runtime.Object{
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 		ShouldErr: true,
 		ExpectCreates: []runtime.Object{
 			testBuilders.
 				AddData("riff-application", "").
 				AddData("riff-function", "").
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "update builders configmap",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			testBuilders.Get(),
-			testApplicationBuilderReady.Get(),
-			testFunctionBuilderReady.Get(),
+			testBuilders.Build(),
+			testApplicationBuilderReady.Build(),
+			testFunctionBuilderReady.Build(),
 		},
 		ExpectUpdates: []runtime.Object{
 			testBuilders.
 				AddData("riff-application", testApplicationImage).
 				AddData("riff-function", testFunctionImage).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "update builders configmap, error",
@@ -168,16 +168,16 @@ func TestClusterBuildersReconciler(t *testing.T) {
 			rtesting.InduceFailure("update", "ConfigMap"),
 		},
 		GivenObjects: []runtime.Object{
-			testBuilders.Get(),
-			testApplicationBuilderReady.Get(),
-			testFunctionBuilderReady.Get(),
+			testBuilders.Build(),
+			testApplicationBuilderReady.Build(),
+			testFunctionBuilderReady.Build(),
 		},
 		ShouldErr: true,
 		ExpectUpdates: []runtime.Object{
 			testBuilders.
 				AddData("riff-application", testApplicationImage).
 				AddData("riff-function", testFunctionImage).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "get builders configmap error",
@@ -186,9 +186,9 @@ func TestClusterBuildersReconciler(t *testing.T) {
 			rtesting.InduceFailure("get", "ConfigMap"),
 		},
 		GivenObjects: []runtime.Object{
-			testBuilders.Get(),
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+			testBuilders.Build(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 		ShouldErr: true,
 	}, {
@@ -198,9 +198,9 @@ func TestClusterBuildersReconciler(t *testing.T) {
 			rtesting.InduceFailure("list", "ClusterBuilderList"),
 		},
 		GivenObjects: []runtime.Object{
-			testBuilders.Get(),
-			testApplicationBuilder.Get(),
-			testFunctionBuilder.Get(),
+			testBuilders.Build(),
+			testApplicationBuilder.Build(),
+			testFunctionBuilder.Build(),
 		},
 		ShouldErr: true,
 	}}

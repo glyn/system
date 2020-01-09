@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -41,37 +41,37 @@ func Service(seed ...*corev1.Service) *service {
 	}
 }
 
-func (f *service) deepCopy() *service {
-	return Service(f.target.DeepCopy())
+func (b *service) deepCopy() *service {
+	return Service(b.target.DeepCopy())
 }
 
-func (f *service) Get() *corev1.Service {
-	return f.deepCopy().target
+func (b *service) Build() *corev1.Service {
+	return b.deepCopy().target
 }
 
-func (f *service) Mutate(m func(*corev1.Service)) *service {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *service) Mutate(m func(*corev1.Service)) *service {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *service) NamespaceName(namespace, name string) *service {
-	return f.Mutate(func(sa *corev1.Service) {
+func (b *service) NamespaceName(namespace, name string) *service {
+	return b.Mutate(func(sa *corev1.Service) {
 		sa.ObjectMeta.Namespace = namespace
 		sa.ObjectMeta.Name = name
 	})
 }
 
-func (f *service) ObjectMeta(nf func(ObjectMeta)) *service {
-	return f.Mutate(func(sa *corev1.Service) {
+func (b *service) ObjectMeta(nf func(ObjectMeta)) *service {
+	return b.Mutate(func(sa *corev1.Service) {
 		omf := objectMeta(sa.ObjectMeta)
 		nf(omf)
-		sa.ObjectMeta = omf.Get()
+		sa.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *service) AddSelectorLabel(key, value string) *service {
-	return f.Mutate(func(service *corev1.Service) {
+func (b *service) AddSelectorLabel(key, value string) *service {
+	return b.Mutate(func(service *corev1.Service) {
 		if service.Spec.Selector == nil {
 			service.Spec.Selector = map[string]string{}
 		}
@@ -79,8 +79,8 @@ func (f *service) AddSelectorLabel(key, value string) *service {
 	})
 }
 
-func (f *service) Ports(ports ...corev1.ServicePort) *service {
-	return f.Mutate(func(service *corev1.Service) {
+func (b *service) Ports(ports ...corev1.ServicePort) *service {
+	return b.Mutate(func(service *corev1.Service) {
 		service.Spec.Ports = ports
 	})
 }

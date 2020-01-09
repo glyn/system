@@ -31,7 +31,7 @@ import (
 	kpackbuildv1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/kpack/build/v1alpha1"
 	"github.com/projectriff/system/pkg/controllers/build"
 	rtesting "github.com/projectriff/system/pkg/controllers/testing"
-	"github.com/projectriff/system/pkg/controllers/testing/factories"
+	"github.com/projectriff/system/pkg/controllers/testing/builders"
 	"github.com/projectriff/system/pkg/tracker"
 )
 
@@ -52,40 +52,40 @@ func TestFunctionReconciler(t *testing.T) {
 	testHandler := "test-fn-handler"
 	testInvoker := "test-fn-invoker"
 
-	functionConditionImageResolved := factories.Condition().Type(buildv1alpha1.FunctionConditionImageResolved)
-	functionConditionKpackImageReady := factories.Condition().Type(buildv1alpha1.FunctionConditionKpackImageReady)
-	functionConditionReady := factories.Condition().Type(buildv1alpha1.FunctionConditionReady)
+	functionConditionImageResolved := builders.Condition().Type(buildv1alpha1.FunctionConditionImageResolved)
+	functionConditionKpackImageReady := builders.Condition().Type(buildv1alpha1.FunctionConditionKpackImageReady)
+	functionConditionReady := builders.Condition().Type(buildv1alpha1.FunctionConditionReady)
 
 	scheme := runtime.NewScheme()
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = kpackbuildv1alpha1.AddToScheme(scheme)
 	_ = buildv1alpha1.AddToScheme(scheme)
 
-	funcMinimal := factories.Function().
+	funcMinimal := builders.Function().
 		NamespaceName(testNamespace, testName)
 	funcValid := funcMinimal.
 		Image("%s/%s", testImagePrefix, testName).
 		SourceGit(testGitUrl, testGitRevision)
 
-	kpackImageCreate := factories.KpackImage().
-		ObjectMeta(func(om factories.ObjectMeta) {
+	kpackImageCreate := builders.KpackImage().
+		ObjectMeta(func(om builders.ObjectMeta) {
 			om.Namespace(testNamespace).
 				GenerateName("%s-function-", testName).
 				AddLabel(buildv1alpha1.FunctionLabelKey, testName).
-				ControlledBy(funcMinimal.Get(), scheme)
+				ControlledBy(funcMinimal.Build(), scheme)
 		}).
 		Tag("%s/%s", testImagePrefix, testName).
 		FunctionBuilder("", "", "").
 		SourceGit(testGitUrl, testGitRevision)
 	kpackImageGiven := kpackImageCreate.
-		ObjectMeta(func(om factories.ObjectMeta) {
+		ObjectMeta(func(om builders.ObjectMeta) {
 			om.
 				Name("%s-function-001", testName).
 				Generation(1)
 		}).
 		StatusObservedGeneration(1)
 
-	cmImagePrefix := factories.ConfigMap().
+	cmImagePrefix := builders.ConfigMap().
 		NamespaceName(testNamespace, "riff-build").
 		AddData("default-image-prefix", "")
 
@@ -97,10 +97,10 @@ func TestFunctionReconciler(t *testing.T) {
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			funcValid.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.Deleted(1)
 				}).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "function get error",
@@ -113,10 +113,10 @@ func TestFunctionReconciler(t *testing.T) {
 		Name: "create kpack image",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 		},
 		ExpectCreates: []runtime.Object{
-			kpackImageCreate.Get(),
+			kpackImageCreate.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -127,7 +127,7 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "create kpack image, function properties",
@@ -137,12 +137,12 @@ func TestFunctionReconciler(t *testing.T) {
 				Artifact(testArtifact).
 				Handler(testHandler).
 				Invoker(testInvoker).
-				Get(),
+				Build(),
 		},
 		ExpectCreates: []runtime.Object{
 			kpackImageCreate.
 				FunctionBuilder(testArtifact, testHandler, testInvoker).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -153,7 +153,7 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "create kpack image, build cache",
@@ -161,12 +161,12 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			funcValid.
 				BuildCache("1Gi").
-				Get(),
+				Build(),
 		},
 		ExpectCreates: []runtime.Object{
 			kpackImageCreate.
 				BuildCache("1Gi").
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -177,24 +177,24 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "create kpack image, propagating labels",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			funcValid.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.AddLabel(testLabelKey, testLabelValue)
 				}).
-				Get(),
+				Build(),
 		},
 		ExpectCreates: []runtime.Object{
 			kpackImageCreate.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.AddLabel(testLabelKey, testLabelValue)
 				}).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -205,7 +205,7 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "default image",
@@ -213,13 +213,13 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			cmImagePrefix.
 				AddData("default-image-prefix", testImagePrefix).
-				Get(),
+				Build(),
 			funcMinimal.
 				SourceGit(testGitUrl, testGitRevision).
-				Get(),
+				Build(),
 		},
 		ExpectCreates: []runtime.Object{
-			kpackImageCreate.Get(),
+			kpackImageCreate.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -230,7 +230,7 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "default image, missing",
@@ -238,7 +238,7 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			funcMinimal.
 				SourceGit(testGitUrl, testGitRevision).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -247,17 +247,17 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.Unknown(),
 					functionConditionReady.False().Reason("DefaultImagePrefixMissing", "missing default image prefix"),
 				).
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 	}, {
 		Name: "default image, undefined",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			cmImagePrefix.Get(),
+			cmImagePrefix.Build(),
 			funcMinimal.
 				SourceGit(testGitUrl, testGitRevision).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -266,7 +266,7 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.Unknown(),
 					functionConditionReady.False().Reason("DefaultImagePrefixMissing", "missing default image prefix"),
 				).
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 	}, {
@@ -276,10 +276,10 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("get", "ConfigMap"),
 		},
 		GivenObjects: []runtime.Object{
-			cmImagePrefix.Get(),
+			cmImagePrefix.Build(),
 			funcMinimal.
 				SourceGit(testGitUrl, testGitRevision).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -288,18 +288,18 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.Unknown(),
 					functionConditionReady.False().Reason("ImageInvalid", "inducing failure for get ConfigMap"),
 				).
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 	}, {
 		Name: "kpack image ready",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				StatusReady().
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -308,21 +308,21 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.True(),
 					functionConditionReady.True(),
 				).
-				StatusKpackImageRef(kpackImageGiven.Get().Name).
+				StatusKpackImageRef(kpackImageGiven.Build().Name).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image ready, build cache",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				StatusReady().
 				StatusBuildCacheName(testBuildCacheName).
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -331,23 +331,23 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.True(),
 					functionConditionReady.True(),
 				).
-				StatusKpackImageRef(kpackImageGiven.Get().Name).
+				StatusKpackImageRef(kpackImageGiven.Build().Name).
 				StatusBuildCacheRef(testBuildCacheName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image not-ready",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				StatusConditions(
-					factories.Condition().Type(apis.ConditionReady).False().Reason(testConditionReason, testConditionMessage),
+					builders.Condition().Type(apis.ConditionReady).False().Reason(testConditionReason, testConditionMessage),
 				).
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -356,10 +356,10 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.False().Reason(testConditionReason, testConditionMessage),
 					functionConditionReady.False().Reason(testConditionReason, testConditionMessage),
 				).
-				StatusKpackImageRef(kpackImageGiven.Get().Name).
+				StatusKpackImageRef(kpackImageGiven.Build().Name).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
 				StatusLatestImage("%s/%s@sha256:%s", testImagePrefix, testName, testSha256).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image create error",
@@ -368,11 +368,11 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("create", "Image"),
 		},
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 		},
 		ShouldErr: true,
 		ExpectCreates: []runtime.Object{
-			kpackImageCreate.Get(),
+			kpackImageCreate.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcValid.
@@ -382,19 +382,19 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionReady.Unknown(),
 				).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image update, spec",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				SourceGit(testGitUrl, "bogus").
-				Get(),
+				Build(),
 		},
 		ExpectUpdates: []runtime.Object{
-			kpackImageGiven.Get(),
+			kpackImageGiven.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcValid.
@@ -403,27 +403,27 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.Unknown(),
 					functionConditionReady.Unknown(),
 				).
-				StatusKpackImageRef(kpackImageGiven.Get().Name).
+				StatusKpackImageRef(kpackImageGiven.Build().Name).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image update, labels",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
 			funcValid.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.AddLabel(testLabelKey, testLabelValue)
 				}).
-				Get(),
-			kpackImageGiven.Get(),
+				Build(),
+			kpackImageGiven.Build(),
 		},
 		ExpectUpdates: []runtime.Object{
 			kpackImageGiven.
-				ObjectMeta(func(om factories.ObjectMeta) {
+				ObjectMeta(func(om builders.ObjectMeta) {
 					om.AddLabel(testLabelKey, testLabelValue)
 				}).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcValid.
@@ -432,9 +432,9 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionKpackImageReady.Unknown(),
 					functionConditionReady.Unknown(),
 				).
-				StatusKpackImageRef(kpackImageGiven.Get().Name).
+				StatusKpackImageRef(kpackImageGiven.Build().Name).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image update, fails",
@@ -443,14 +443,14 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("update", "Image"),
 		},
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				SourceGit(testGitUrl, "bogus").
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 		ExpectUpdates: []runtime.Object{
-			kpackImageGiven.Get(),
+			kpackImageGiven.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcValid.
@@ -460,7 +460,7 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionReady.Unknown(),
 				).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "kpack image list error",
@@ -469,7 +469,7 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("list", "ImageList"),
 		},
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 		},
 		ShouldErr: true,
 		ExpectStatusUpdates: []runtime.Object{
@@ -480,7 +480,7 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionReady.Unknown(),
 				).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "function status update error",
@@ -489,10 +489,10 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("update", "Function"),
 		},
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 		},
 		ExpectCreates: []runtime.Object{
-			kpackImageCreate.Get(),
+			kpackImageCreate.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -503,27 +503,27 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 	}, {
 		Name: "delete extra kpack image",
 		Key:  testKey,
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				NamespaceName(testNamespace, "extra1").
-				Get(),
+				Build(),
 			kpackImageGiven.
 				NamespaceName(testNamespace, "extra2").
-				Get(),
+				Build(),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
 			{Group: "build.pivotal.io", Kind: "Image", Namespace: testNamespace, Name: "extra1"},
 			{Group: "build.pivotal.io", Kind: "Image", Namespace: testNamespace, Name: "extra2"},
 		},
 		ExpectCreates: []runtime.Object{
-			kpackImageCreate.Get(),
+			kpackImageCreate.Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -534,7 +534,7 @@ func TestFunctionReconciler(t *testing.T) {
 				).
 				StatusKpackImageRef("%s-function-001", testName).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "delete extra kpack image, fails",
@@ -543,13 +543,13 @@ func TestFunctionReconciler(t *testing.T) {
 			rtesting.InduceFailure("delete", "Image"),
 		},
 		GivenObjects: []runtime.Object{
-			funcValid.Get(),
+			funcValid.Build(),
 			kpackImageGiven.
 				NamespaceName(testNamespace, "extra1").
-				Get(),
+				Build(),
 			kpackImageGiven.
 				NamespaceName(testNamespace, "extra2").
-				Get(),
+				Build(),
 		},
 		ShouldErr: true,
 		ExpectDeletes: []rtesting.DeleteRef{
@@ -563,7 +563,7 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionReady.Unknown(),
 				).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "local build",
@@ -571,7 +571,7 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			funcMinimal.
 				Image("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -583,7 +583,7 @@ func TestFunctionReconciler(t *testing.T) {
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
 				// TODO resolve to a digest
 				StatusLatestImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "local build, removes existing build",
@@ -591,11 +591,11 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			funcMinimal.
 				Image("%s/%s", testImagePrefix, testName).
-				Get(),
-			kpackImageGiven.Get(),
+				Build(),
+			kpackImageGiven.Build(),
 		},
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Get().Namespace, Name: kpackImageGiven.Get().Name},
+			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Build().Namespace, Name: kpackImageGiven.Build().Name},
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -607,7 +607,7 @@ func TestFunctionReconciler(t *testing.T) {
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
 				// TODO resolve to a digest
 				StatusLatestImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}, {
 		Name: "local build, removes existing build, error",
@@ -618,12 +618,12 @@ func TestFunctionReconciler(t *testing.T) {
 		GivenObjects: []runtime.Object{
 			funcMinimal.
 				Image("%s/%s", testImagePrefix, testName).
-				Get(),
-			kpackImageGiven.Get(),
+				Build(),
+			kpackImageGiven.Build(),
 		},
 		ShouldErr: true,
 		ExpectDeletes: []rtesting.DeleteRef{
-			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Get().Namespace, Name: kpackImageGiven.Get().Name},
+			{Group: "build.pivotal.io", Kind: "Image", Namespace: kpackImageGiven.Build().Namespace, Name: kpackImageGiven.Build().Name},
 		},
 		ExpectStatusUpdates: []runtime.Object{
 			funcMinimal.
@@ -633,7 +633,7 @@ func TestFunctionReconciler(t *testing.T) {
 					functionConditionReady.Unknown(),
 				).
 				StatusTargetImage("%s/%s", testImagePrefix, testName).
-				Get(),
+				Build(),
 		},
 	}}
 

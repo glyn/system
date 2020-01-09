@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -41,37 +41,37 @@ func ConfigMap(seed ...*corev1.ConfigMap) *configMap {
 	}
 }
 
-func (f *configMap) deepCopy() *configMap {
-	return ConfigMap(f.target.DeepCopy())
+func (b *configMap) deepCopy() *configMap {
+	return ConfigMap(b.target.DeepCopy())
 }
 
-func (f *configMap) Get() *corev1.ConfigMap {
-	return f.deepCopy().target
+func (b *configMap) Build() *corev1.ConfigMap {
+	return b.deepCopy().target
 }
 
-func (f *configMap) Mutate(m func(*corev1.ConfigMap)) *configMap {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *configMap) Mutate(m func(*corev1.ConfigMap)) *configMap {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *configMap) NamespaceName(namespace, name string) *configMap {
-	return f.Mutate(func(cm *corev1.ConfigMap) {
+func (b *configMap) NamespaceName(namespace, name string) *configMap {
+	return b.Mutate(func(cm *corev1.ConfigMap) {
 		cm.ObjectMeta.Namespace = namespace
 		cm.ObjectMeta.Name = name
 	})
 }
 
-func (f *configMap) ObjectMeta(nf func(ObjectMeta)) *configMap {
-	return f.Mutate(func(cm *corev1.ConfigMap) {
+func (b *configMap) ObjectMeta(nf func(ObjectMeta)) *configMap {
+	return b.Mutate(func(cm *corev1.ConfigMap) {
 		omf := objectMeta(cm.ObjectMeta)
 		nf(omf)
-		cm.ObjectMeta = omf.Get()
+		cm.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *configMap) AddData(key, value string) *configMap {
-	return f.Mutate(func(cm *corev1.ConfigMap) {
+func (b *configMap) AddData(key, value string) *configMap {
+	return b.Mutate(func(cm *corev1.ConfigMap) {
 		if cm.Data == nil {
 			cm.Data = map[string]string{}
 		}

@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -46,37 +46,37 @@ func KpackImage(seed ...*kpackbuildv1alpha1.Image) *kpackImage {
 	}
 }
 
-func (f *kpackImage) deepCopy() *kpackImage {
-	return KpackImage(f.target.DeepCopy())
+func (b *kpackImage) deepCopy() *kpackImage {
+	return KpackImage(b.target.DeepCopy())
 }
 
-func (f *kpackImage) Get() *kpackbuildv1alpha1.Image {
-	return f.deepCopy().target
+func (b *kpackImage) Build() *kpackbuildv1alpha1.Image {
+	return b.deepCopy().target
 }
 
-func (f *kpackImage) Mutate(m func(*kpackbuildv1alpha1.Image)) *kpackImage {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *kpackImage) Mutate(m func(*kpackbuildv1alpha1.Image)) *kpackImage {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *kpackImage) NamespaceName(namespace, name string) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) NamespaceName(namespace, name string) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.ObjectMeta.Namespace = namespace
 		image.ObjectMeta.Name = name
 	})
 }
 
-func (f *kpackImage) ObjectMeta(nf func(ObjectMeta)) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) ObjectMeta(nf func(ObjectMeta)) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		omf := objectMeta(image.ObjectMeta)
 		nf(omf)
-		image.ObjectMeta = omf.Get()
+		image.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *kpackImage) ApplicationBuilder() *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) ApplicationBuilder() *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Spec.Builder = kpackbuildv1alpha1.ImageBuilder{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ClusterBuilder",
@@ -87,8 +87,8 @@ func (f *kpackImage) ApplicationBuilder() *kpackImage {
 	})
 }
 
-func (f *kpackImage) FunctionBuilder(artifact, handler, invoker string) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) FunctionBuilder(artifact, handler, invoker string) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Spec.Builder = kpackbuildv1alpha1.ImageBuilder{
 			TypeMeta: metav1.TypeMeta{
 				Kind: "ClusterBuilder",
@@ -125,14 +125,14 @@ func (f *kpackImage) FunctionBuilder(artifact, handler, invoker string) *kpackIm
 	})
 }
 
-func (f *kpackImage) Tag(format string, a ...interface{}) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) Tag(format string, a ...interface{}) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Spec.Tag = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *kpackImage) SourceGit(url string, revision string) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) SourceGit(url string, revision string) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Spec.Source = kpackbuildv1alpha1.SourceConfig{
 			Git: &kpackbuildv1alpha1.Git{
 				URL:      url,
@@ -143,14 +143,14 @@ func (f *kpackImage) SourceGit(url string, revision string) *kpackImage {
 	})
 }
 
-func (f *kpackImage) SourceSubPath(subpath string) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) SourceSubPath(subpath string) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Spec.Source.SubPath = subpath
 	})
 }
 
-func (f *kpackImage) BuildCache(quantity string) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) BuildCache(quantity string) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		size, err := resource.ParseQuantity(quantity)
 		if err != nil {
 			panic(err)
@@ -159,36 +159,36 @@ func (f *kpackImage) BuildCache(quantity string) *kpackImage {
 	})
 }
 
-func (f *kpackImage) StatusConditions(conditions ...*condition) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) StatusConditions(conditions ...*condition) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		c := make([]apis.Condition, len(conditions))
 		for i, cg := range conditions {
-			c[i] = cg.Get()
+			c[i] = cg.Build()
 		}
 		image.Status.Conditions = c
 	})
 }
 
-func (f *kpackImage) StatusReady() *kpackImage {
-	return f.StatusConditions(
+func (b *kpackImage) StatusReady() *kpackImage {
+	return b.StatusConditions(
 		Condition().Type(apis.ConditionReady).True(),
 	)
 }
 
-func (f *kpackImage) StatusObservedGeneration(generation int64) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) StatusObservedGeneration(generation int64) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Status.ObservedGeneration = generation
 	})
 }
 
-func (f *kpackImage) StatusLatestImage(format string, a ...interface{}) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) StatusLatestImage(format string, a ...interface{}) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Status.LatestImage = fmt.Sprintf(format, a...)
 	})
 }
 
-func (f *kpackImage) StatusBuildCacheName(format string, a ...interface{}) *kpackImage {
-	return f.Mutate(func(image *kpackbuildv1alpha1.Image) {
+func (b *kpackImage) StatusBuildCacheName(format string, a ...interface{}) *kpackImage {
+	return b.Mutate(func(image *kpackbuildv1alpha1.Image) {
 		image.Status.BuildCacheName = fmt.Sprintf(format, a...)
 	})
 }

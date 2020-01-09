@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package factories
+package builders
 
 import (
 	"fmt"
@@ -41,67 +41,67 @@ func KedaScaledObject(seed ...*kedav1alpha1.ScaledObject) *kedaScaledObject {
 	}
 }
 
-func (f *kedaScaledObject) deepCopy() *kedaScaledObject {
-	return KedaScaledObject(f.target.DeepCopy())
+func (b *kedaScaledObject) deepCopy() *kedaScaledObject {
+	return KedaScaledObject(b.target.DeepCopy())
 }
 
-func (f *kedaScaledObject) Get() *kedav1alpha1.ScaledObject {
-	return f.deepCopy().target
+func (b *kedaScaledObject) Build() *kedav1alpha1.ScaledObject {
+	return b.deepCopy().target
 }
 
-func (f *kedaScaledObject) Mutate(m func(*kedav1alpha1.ScaledObject)) *kedaScaledObject {
-	f = f.deepCopy()
-	m(f.target)
-	return f
+func (b *kedaScaledObject) Mutate(m func(*kedav1alpha1.ScaledObject)) *kedaScaledObject {
+	b = b.deepCopy()
+	m(b.target)
+	return b
 }
 
-func (f *kedaScaledObject) NamespaceName(namespace, name string) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) NamespaceName(namespace, name string) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.ObjectMeta.Namespace = namespace
 		s.ObjectMeta.Name = name
 	})
 }
 
-func (f *kedaScaledObject) ObjectMeta(nf func(ObjectMeta)) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) ObjectMeta(nf func(ObjectMeta)) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		omf := objectMeta(s.ObjectMeta)
 		nf(omf)
-		s.ObjectMeta = omf.Get()
+		s.ObjectMeta = omf.Build()
 	})
 }
 
-func (f *kedaScaledObject) Spec(spec *kedav1alpha1.ScaledObjectSpec) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) Spec(spec *kedav1alpha1.ScaledObjectSpec) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec = *spec
 	})
 }
 
-func (f *kedaScaledObject) ScaleTargetRefDeployment(format string, a ...interface{}) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) ScaleTargetRefDeployment(format string, a ...interface{}) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.ScaleTargetRef = &kedav1alpha1.ObjectReference{DeploymentName: fmt.Sprintf(format, a...)}
 	})
 }
 
-func (f *kedaScaledObject) PollingInterval(pollingInterval int32) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) PollingInterval(pollingInterval int32) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.PollingInterval = &pollingInterval
 	})
 }
 
-func (f *kedaScaledObject) CooldownPeriod(cooldownPeriod int32) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) CooldownPeriod(cooldownPeriod int32) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.CooldownPeriod = &cooldownPeriod
 	})
 }
 
-func (f *kedaScaledObject) MinReplicaCount(minReplicaCount int32) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) MinReplicaCount(minReplicaCount int32) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.MinReplicaCount = &minReplicaCount
 	})
 }
 
-func (f *kedaScaledObject) MaxReplicaCount(maxReplicaCount int32) *kedaScaledObject {
-	return f.Mutate(func(s *kedav1alpha1.ScaledObject) {
+func (b *kedaScaledObject) MaxReplicaCount(maxReplicaCount int32) *kedaScaledObject {
+	return b.Mutate(func(s *kedav1alpha1.ScaledObject) {
 		s.Spec.MaxReplicaCount = &maxReplicaCount
 	})
 }
