@@ -50,7 +50,7 @@ func (f *function) deepCopy() *function {
 	return Function(f.target.DeepCopy())
 }
 
-func (f *function) Get() *buildv1alpha1.Function {
+func (f *function) Get() apis.Object {
 	return f.deepCopy().target
 }
 

@@ -19,6 +19,7 @@ package factories
 import (
 	"fmt"
 
+	"github.com/projectriff/system/pkg/apis"
 	kedav1alpha1 "github.com/projectriff/system/pkg/apis/thirdparty/keda/v1alpha1"
 )
 
@@ -45,7 +46,7 @@ func (f *kedaScaledObject) deepCopy() *kedaScaledObject {
 	return KedaScaledObject(f.target.DeepCopy())
 }
 
-func (f *kedaScaledObject) Get() *kedav1alpha1.ScaledObject {
+func (f *kedaScaledObject) Get() apis.Object {
 	return f.deepCopy().target
 }
 

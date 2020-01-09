@@ -50,7 +50,7 @@ func (f *processor) deepCopy() *processor {
 	return Processor(f.target.DeepCopy())
 }
 
-func (f *processor) Get() *streamingv1alpha1.Processor {
+func (f *processor) Get() apis.Object {
 	return f.deepCopy().target
 }
 

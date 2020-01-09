@@ -46,7 +46,7 @@ func (f *container) deepCopy() *container {
 	return Container(f.target.DeepCopy())
 }
 
-func (f *container) Get() *buildv1alpha1.Container {
+func (f *container) Get() apis.Object {
 	return f.deepCopy().target
 }
 

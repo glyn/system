@@ -23,6 +23,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	"github.com/projectriff/system/pkg/apis"
 	rtesting "github.com/projectriff/system/pkg/controllers/testing"
 )
 
@@ -49,7 +50,7 @@ func (f *deployment) deepCopy() *deployment {
 	return Deployment(f.target.DeepCopy())
 }
 
-func (f *deployment) Get() *appsv1.Deployment {
+func (f *deployment) Get() apis.Object {
 	return f.deepCopy().target
 }
 
