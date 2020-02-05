@@ -43,7 +43,7 @@ func StreamReconciler(c controllers.Config, provisioner StreamProvisionerClient)
 	c.Log = c.Log.WithName("Stream")
 
 	return &controllers.ParentReconciler{
-		Type: &streamingv1alpha1.Stream{},
+		Type: controllers.NewObjectType(&streamingv1alpha1.Stream{}),
 		SubReconcilers: []controllers.SubReconciler{
 			StreamProvisionReconciler(c, provisioner),
 			StreamChildBindingMetadataReconciler(c),

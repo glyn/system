@@ -54,14 +54,34 @@ type Config struct {
 	Tracker   tracker.Tracker
 }
 
+// ObjectType represents the type of a Kubernetes object. Fields of type ObjectType are
+// initialized with an empty object and not modified subsequently.
+type ObjectType struct {
+	runtime.Object
+}
+
+// NewObjectType constructs an ObjectType from the given empty object.
+func NewObjectType(obj runtime.Object) ObjectType {
+	return ObjectType{obj}
+}
+
+// asObject returns a deep copy of the object type as an apis.Object.
+func (ot ObjectType) asObject() apis.Object {
+	return ot.DeepCopyObject().(apis.Object)
+}
+
+func (ot ObjectType) typeName() string {
+	return typeName(ot)
+}
+
 // ParentReconciler is a controller-runtime reconciler that reconciles a given
 // existing resource. The ParentType resource is fetched for the reconciler
 // request and passed in turn to each SubReconciler. Finally, the reconciled
 // resource's status is compared with the original status, updating the API
 // server if needed.
 type ParentReconciler struct {
-	// Type of resource to reconcile
-	Type runtime.Object
+	// ObjectType of resource to reconcile
+	Type ObjectType
 
 	// SubReconcilers are called in order for each reconciler request. If a sub
 	// reconciler errs, further sub reconcilers are skipped.
@@ -71,7 +91,7 @@ type ParentReconciler struct {
 }
 
 func (r *ParentReconciler) SetupWithManager(mgr ctrl.Manager) error {
-	bldr := ctrl.NewControllerManagedBy(mgr).For(r.Type)
+	bldr := ctrl.NewControllerManagedBy(mgr).For(r.Type.asObject())
 	for _, reconciler := range r.SubReconcilers {
 		err := reconciler.SetupWithManager(mgr, bldr)
 		if err != nil {
@@ -85,7 +105,7 @@ func (r *ParentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := WithStash(context.Background())
 	log := r.Log.WithValues("request", req.NamespacedName)
 
-	originalParent := r.Type.DeepCopyObject().(apis.Object)
+	originalParent := r.Type.asObject()
 
 	if err := r.Get(ctx, req.NamespacedName, originalParent); err != nil {
 		if apierrs.IsNotFound(err) {
@@ -115,7 +135,7 @@ func (r *ParentReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		// update status
 		log.Info("updating status", "diff", cmp.Diff(r.status(originalParent), r.status(parent)))
 		if updateErr := r.Status().Update(ctx, parent); updateErr != nil {
-			log.Error(updateErr, "unable to update status", typeName(r.Type), parent)
+			log.Error(updateErr, "unable to update status", r.Type.typeName(), parent)
 			r.Recorder.Eventf(parent, corev1.EventTypeWarning, "StatusUpdateFailed",
 				"Failed to update status: %v", updateErr)
 			return ctrl.Result{}, updateErr
@@ -235,15 +255,15 @@ func (r *SyncReconciler) sync(ctx context.Context, parent apis.Object) error {
 // During setup, the child resource type is registered to watch for changes. A
 // field indexer is configured for the owner on the IndexField.
 type ChildReconciler struct {
-	// ParentType of resource to reconcile
-	ParentType apis.Object
-	// ChildType is the resource being created/updated/deleted by the
-	// reconciler. For example, a parent Deployment would have a ReplicaSet as a
+	// ParentType represents the type of parent resource to reconcile.
+	ParentType ObjectType
+	// ChildType represents the type of the resource being created/updated/deleted by the
+	// child reconciler. For example, a parent Deployment would have a ReplicaSet as a
 	// child.
-	ChildType apis.Object
-	// ChildListType is the listing type for the child type. For example,
-	// PodList is the list type for Pod
-	ChildListType runtime.Object
+	ChildType ObjectType
+	// ChildListType represents the listing type for the child type. For example,
+	// PodList is the list type for Pod.
+	ChildListType ObjectType
 
 	// Setup performs initialization on the manager and builder this reconciler
 	// will run with. It's common to setup field indexes and watch resources.
